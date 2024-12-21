@@ -4,7 +4,7 @@ import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import prisma from "../../../shared/prisma";
 import * as bcrypt from "bcrypt";
 import ApiError from "../../../errors/ApiErrors";
-import emailSender from "./emailSender";
+import emailSender from "../../../shared/emailSender";
 import { UserStatus } from "@prisma/client";
 import httpStatus from "http-status";
 
