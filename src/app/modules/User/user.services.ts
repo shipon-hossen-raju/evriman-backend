@@ -4,10 +4,12 @@ import { IUser, IUserFilterRequest } from "./user.interface";
 import * as bcrypt from "bcrypt";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import { paginationHelper } from "../../../helpars/paginationHelper";
-import { Prisma, User, UserRole, UserStatus } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
 import { userSearchAbleFields } from "./user.costant";
 import config from "../../../config";
 import httpStatus from "http-status";
+import { Request } from "express";
+import { fileUploader } from "../../../helpars/fileUploader";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User) => {
@@ -40,8 +42,6 @@ const createUserIntoDb = async (payload: User) => {
     data: { ...payload, password: hashedPassword },
     select: {
       id: true,
-      name: true,
-      username: true,
       email: true,
       role: true,
       createdAt: true,
@@ -97,7 +97,7 @@ const getUsersFromDb = async (
           },
     select: {
       id: true,
-      name: true,
+      fullName: true,
       username: true,
       email: true,
       profileImage: true,
@@ -124,49 +124,47 @@ const getUsersFromDb = async (
 };
 
 // update profile by user won profile uisng token or email and id
-const updateProfile = async (user: IUser, payload: User) => {
-  const userInfo = await prisma.user.findUnique({
+const updateProfile = async (req: Request) => {
+  console.log(req.file, req.body.data);
+  const file = req.file;
+  const stringData = req.body.data;
+  let image;
+  let parseData;
+  const existingUser = await prisma.user.findFirst({
     where: {
-      email: user.email,
-      id: user.id,
+      id: req.user.id,
     },
   });
-
-  if (!userInfo) {
+  if (!existingUser) {
     throw new ApiError(404, "User not found");
   }
-
-  // Update the user profile with the new information
+  if (file) {
+    image = (await fileUploader.uploadToDigitalOcean(file)).Location;
+  }
+  if (stringData) {
+    parseData = JSON.parse(stringData);
+  }
   const result = await prisma.user.update({
     where: {
-      email: userInfo.email,
+      id: existingUser.id, // Ensure `existingUser.id` is valid and exists
     },
     data: {
-      name: payload.name || userInfo.name,
-      username: payload.username || userInfo.username,
-      email: payload.email || userInfo.email,
-      profileImage: payload.profileImage || userInfo.profileImage,
-      phoneNumber: payload.phoneNumber || userInfo.phoneNumber,
+      fullName: parseData.fullName || existingUser.fullName,
+      username: parseData.username || existingUser.username,
+      dob: parseData.dob || existingUser.dob,
+      email: parseData.email || existingUser.email,
+      profileImage: image || existingUser.profileImage,
+      updatedAt: new Date(), // Assuming your model has an `updatedAt` field
     },
     select: {
       id: true,
-      name: true,
+      fullName: true,
       username: true,
-
-      
       email: true,
       profileImage: true,
-      phoneNumber: true,
-      createdAt: true,
-      updatedAt: true,
+      dob: true,
     },
   });
-
-  if (!result)
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      "Failed to update user profile"
-    );
 
   return result;
 };
@@ -188,7 +186,7 @@ const updateUserIntoDb = async (payload: IUser, id: string) => {
     data: payload,
     select: {
       id: true,
-      name: true,
+      fullName: true,
       username: true,
       email: true,
       profileImage: true,
