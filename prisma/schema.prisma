@@ -9,8 +9,8 @@ datasource db {
 
 model User {
   id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  username     String?     @unique
+  name         String?
+  username     String?    @unique
   email        String     @unique
   phoneNumber  String?
   profileImage String?
@@ -25,7 +25,8 @@ model User {
 
 enum UserRole {
   ADMIN
-  TEACHER
+  ARTIST
+  FAN
   SUPER_ADMIN
   USER
 }
