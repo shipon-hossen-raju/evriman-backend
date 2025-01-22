@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const MODULES_DIR = path.join(__dirname, '../modules');
+const MODULES_DIR = path.join(__dirname, 'app/modules');
 
 const generateModule = moduleName => {
   if (!moduleName) {
