@@ -36,6 +36,7 @@ const create${capitalizedModule} = catchAsync(async (req, res) => {
   const result = await ${moduleName}Service.createIntoDb(req.body);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
+    success: true,
     message: '${capitalizedModule} created successfully',
     data: result,
   });
@@ -45,6 +46,7 @@ const get${capitalizedModule}List = catchAsync(async (req, res) => {
   const result = await ${moduleName}Service.getListFromDb();
   sendResponse(res, {
     statusCode: httpStatus.OK,
+    success: true,
     message: '${capitalizedModule} list retrieved successfully',
     data: result,
   });
@@ -54,6 +56,7 @@ const get${capitalizedModule}ById = catchAsync(async (req, res) => {
   const result = await ${moduleName}Service.getByIdFromDb(req.params.id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
+    success: true,
     message: '${capitalizedModule} details retrieved successfully',
     data: result,
   });
@@ -63,6 +66,7 @@ const update${capitalizedModule} = catchAsync(async (req, res) => {
   const result = await ${moduleName}Service.updateIntoDb(req.params.id, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
+    success: true,
     message: '${capitalizedModule} updated successfully',
     data: result,
   });
@@ -72,6 +76,7 @@ const delete${capitalizedModule} = catchAsync(async (req, res) => {
   const result = await ${moduleName}Service.deleteItemFromDb(req.params.id);
   sendResponse(res, {
     statusCode: httpStatus.OK,
+    success: true,
     message: '${capitalizedModule} deleted successfully',
     data: result,
   });
