@@ -1,28 +1,26 @@
 import nodemailer from "nodemailer";
 import config from "../config";
 
-const emailSender = async ( email: string, html: string,subject: string,) => {
+const emailSender = async (email: string, html: string, subject: string) => {
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
+    host: "smtp.titan.email",
+    port: 465,
+    secure: true,
     auth: {
-      user: config.emailSender.email,
-      pass: config.emailSender.app_pass,
-    },
-    tls: {
-      rejectUnauthorized: false,
+      user: "pixelteam@smtech24.com", 
+      pass: "@pixel321team", 
     },
   });
+  
 
   const info = await transporter.sendMail({
-    from: '<belalhossain22000@gmail.com>',
+    from: "pixelteam@smtech24.com",
     to: email,
-    subject: `${subject}`,
+    subject: subject,
     html,
   });
 
-  // console.log("Message sent: %s", info.messageId);
+  
 };
 
 export default emailSender;
