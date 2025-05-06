@@ -15,7 +15,7 @@ import { fileUploader } from "../../../helpars/fileUploader";
 const createUserIntoDb = async (payload: User) => {
   const existingUser = await prisma.user.findFirst({
     where: {
-      OR: [{ email: payload.email }, { username: payload.username }],
+    email: payload.email
     },
   });
 
@@ -26,12 +26,7 @@ const createUserIntoDb = async (payload: User) => {
         `User with this email ${payload.email} already exists`
       );
     }
-    if (existingUser.username === payload.username) {
-      throw new ApiError(
-        400,
-        `User with this username ${payload.username} already exists`
-      );
-    }
+ 
   }
   const hashedPassword: string = await bcrypt.hash(
     payload.password,
@@ -98,7 +93,6 @@ const getUsersFromDb = async (
     select: {
       id: true,
       fullName: true,
-      username: true,
       email: true,
       profileImage: true,
       role: true,
@@ -150,8 +144,6 @@ const updateProfile = async (req: Request) => {
     },
     data: {
       fullName: parseData.fullName || existingUser.fullName,
-      username: parseData.username || existingUser.username,
-      dob: parseData.dob || existingUser.dob,
       email: parseData.email || existingUser.email,
       profileImage: image || existingUser.profileImage,
       updatedAt: new Date(), // Assuming your model has an `updatedAt` field
@@ -159,10 +151,8 @@ const updateProfile = async (req: Request) => {
     select: {
       id: true,
       fullName: true,
-      username: true,
       email: true,
       profileImage: true,
-      dob: true,
     },
   });
 
@@ -187,7 +177,6 @@ const updateUserIntoDb = async (payload: IUser, id: string) => {
     select: {
       id: true,
       fullName: true,
-      username: true,
       email: true,
       profileImage: true,
       role: true,
