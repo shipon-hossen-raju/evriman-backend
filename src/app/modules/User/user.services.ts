@@ -10,12 +10,14 @@ import config from "../../../config";
 import httpStatus from "http-status";
 import { Request } from "express";
 import { fileUploader } from "../../../helpars/fileUploader";
+import { Secret } from "jsonwebtoken";
+import { jwtHelpers } from "../../../helpars/jwtHelpers";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User) => {
   const existingUser = await prisma.user.findFirst({
     where: {
-    email: payload.email
+      email: payload.email,
     },
   });
 
@@ -26,7 +28,6 @@ const createUserIntoDb = async (payload: User) => {
         `User with this email ${payload.email} already exists`
       );
     }
- 
   }
   const hashedPassword: string = await bcrypt.hash(
     payload.password,
@@ -43,8 +44,17 @@ const createUserIntoDb = async (payload: User) => {
       updatedAt: true,
     },
   });
+  const token = jwtHelpers.generateToken(
+    {
+      id: result.id,
+      email: result.email,
+      role: result.role,
+    },
+    config.jwt.jwt_secret as Secret,
+    config.jwt.expires_in as string
+  );
 
-  return result;
+  return { result, token };
 };
 
 // reterive all users from the database also searcing anf filetering

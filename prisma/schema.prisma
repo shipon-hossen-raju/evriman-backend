@@ -16,6 +16,8 @@ model User {
   expirationOtp DateTime?
   otp           Int?
   password      String
+  isApproved Boolean @default(false)
+  isCompleteProfile Boolean @default(false)
   role          UserRole   @default(USER)
   status        UserStatus @default(ACTIVE)
   createdAt     DateTime   @default(now())
