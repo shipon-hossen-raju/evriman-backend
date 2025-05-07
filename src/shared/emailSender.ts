@@ -19,7 +19,7 @@ const emailSender = async (email: string, html: string, subject: string) => {
     subject: subject,
     html,
   });
-
+console.log("test");
   
 };
 
