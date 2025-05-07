@@ -59,42 +59,11 @@ const id = req.params.id;
     data: result,
   });
 });
-const setRole = catchAsync(async (req: Request, res: Response) => {
-const id = req.user.id;
-const body=req.body
-  const result = await userService.setRole(id,body );
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "User updated successfully!",
-    data: result,
-  });
-});
-const getAllOrganization = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.getAllOrganization();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "User updated successfully!",
-    data: result,
-  });
-});
-const getAllSchool = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.getAllSchool();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "User updated successfully!",
-    data: result,
-  });
-});
+
 
 export const userController = {
   createUser,
   getUsers,
   updateProfile,
-  updateUser,
-  setRole,
-  getAllOrganization,
-  getAllSchool
+  updateUser
 };

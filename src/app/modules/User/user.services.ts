@@ -204,49 +204,12 @@ const updateUserIntoDb = async (payload: IUser, id: string) => {
   return result;
 };
 
-const setRole = async (id: string, body: any) => {
-  const role = body.role;
-  const upperRole = role.toUpperCase();
 
-  let user;
-  if (upperRole) {
-    user = await prisma.user.update({
-      where: { id },
-      data: { role: upperRole },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        coverImage: true,
-        profileImage: true,
-        isCompleteProfile: true,
-        role: true,
-      },
-    });
-  }
-  return user;
-};
-const getAllOrganization = async () => {
-  const result = await prisma.user.findMany({
-    where: { role: { in: [UserRole.SCHOOL, UserRole.SHOP] } },
-    select: { id: true, fullName: true, role: true },
-  });
-  return result;
-};
-const getAllSchool = async () => {
-  const result = await prisma.user.findMany({
-    where: { role: { in: [UserRole.SCHOOL] } },
-    select: { id: true, fullName: true, role: true },
-  });
-  return result;
-};
 
 export const userService = {
   createUserIntoDb,
   getUsersFromDb,
   updateProfile,
   updateUserIntoDb,
-  setRole,
-  getAllOrganization,
-  getAllSchool
+
 };
