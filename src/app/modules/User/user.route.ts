@@ -16,7 +16,10 @@ router.post(
 );
 // *!get all  user
 router.get("/", userController.getUsers);
+router.get("/organization/list", userController.getAllOrganization);
+router.get("/school/list", userController.getAllOrganization);
 
+router.put("/set-role",auth(), userController.setRole)
 // *!profile user
 router.put(
   "/profile",
