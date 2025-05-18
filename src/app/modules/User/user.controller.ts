@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
+import { fileUploader } from "../../../helpars/fileUploader";
 import catchAsync from "../../../shared/catchAsync";
 import emailSender, { OtpHtml } from "../../../shared/emailSender";
 import pick from "../../../shared/pick";
@@ -8,7 +10,24 @@ import { userFilterableFields } from "./user.costant";
 import { userService } from "./user.services";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.createUserIntoDb(req.body);
+  // Process the uploaded file
+  const file = req.file;
+  if (!file) {
+    throw new ApiError(400, "File is required");
+  }
+
+  const image = await fileUploader.uploadToDigitalOcean(file);
+  const imageUrl = image?.Location;
+
+  const userData = {
+    ...req.body,
+    idDocument: imageUrl,
+  };
+
+  // userData delete file 
+  delete userData.file;
+
+  const result = await userService.createUserIntoDb(userData);
 
   // send email to user otp
   const email = await emailSender(

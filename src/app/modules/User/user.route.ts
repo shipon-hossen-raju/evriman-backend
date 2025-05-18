@@ -5,17 +5,24 @@ import { userController } from "./user.controller";
 import auth from "../../middlewares/auth";
 import { UserRole } from "@prisma/client";
 import { fileUploader } from "../../../helpars/fileUploader";
+import { parseBody } from "../../../utils/parseBody";
+// import { fromDataFileUpload } from "../../../utils/FromDataFileUpload";
 
 const router = express.Router();
 
 // *!register user
 router.post(
   "/register",
-  validateRequest(UserValidation.CreateUserValidationSchema),
+  fileUploader.uploadSingle,
+  parseBody,
+  // fromDataFileUpload,
+  // validateRequest(UserValidation.CreateUserValidationSchema),
   userController.createUser
 );
+
 // *!get all  user
 router.get("/", userController.getUsers);
+
 // *!profile user
 router.put(
   "/profile",

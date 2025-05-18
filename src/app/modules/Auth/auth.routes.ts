@@ -11,12 +11,26 @@ const router = express.Router();
 // user login route
 router.post(
   "/login",
-  validateRequest(UserValidation.UserLoginValidationSchema),
+  validateRequest(authValidation.UserLoginValidationSchema),
   AuthController.loginUser
 );
-
+// verify email
+router.post(
+  '/verify-email',
+  AuthController.verifyEmail
+);
 // user logout route
 router.post("/logout", AuthController.logoutUser);
+
+// forgot password
+router.post(
+  '/forgot-password',
+  AuthController.forgotPassword
+);
+
+// reset password
+router.post("/reset-password", AuthController.resetPassword);
+
 
 router.get(
   "/profile",
@@ -31,10 +45,7 @@ router.put(
   AuthController.changePassword
 );
 
-router.post(
-  '/forgot-password',
-  AuthController.forgotPassword
-);
+
 router.post(
   '/resend-otp',
   AuthController.resendOtp
@@ -43,15 +54,6 @@ router.post(
   '/verify-otp',
   AuthController.verifyForgotPasswordOtp
 );
-router.post(
-  '/reset-password',
-  AuthController.resetPassword
-);
 
-// verify email
-router.post(
-  '/verify-email',
-  AuthController.verifyEmail
-);
 
 export const AuthRoutes = router;

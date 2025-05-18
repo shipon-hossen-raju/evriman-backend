@@ -21,23 +21,27 @@ const dateSchema = z.preprocess((arg) => {
 
 // Main schemas
 export const CreateUserValidationSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: passwordSchema,
-  phoneNumber: phoneSchema,
-  dob: dateSchema.refine(
-    (date) => date <= new Date(),
-    "Date of birth cannot be in the future"
-  ),
-  role: z.nativeEnum(UserRole).default(UserRole.USER),
-  loginType: z.nativeEnum(LoginType).default(LoginType.USER),
-  termsAccepted: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms and conditions" }),
+  image: z.any().optional(),
+  data: z.object({
+    fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    password: passwordSchema,
+    phoneNumber: phoneSchema,
+    dob: dateSchema.refine(
+      (date) => date <= new Date(),
+      "Date of birth cannot be in the future"
+    ),
+    role: z.nativeEnum(UserRole).default(UserRole.USER),
+    loginType: z.nativeEnum(LoginType).default(LoginType.USER),
+    termsAccepted: z.literal(true, {
+      errorMap: () => ({ message: "You must accept the terms and conditions" }),
+    }),
+    privacyAccepted: z.literal(true, {
+      errorMap: () => ({ message: "You must accept the privacy policy" }),
+    }),
+    referralCode: z.string().optional(),
+    address: z.string(),
   }),
-  privacyAccepted: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the privacy policy" }),
-  }),
-  referralCode: z.string().optional(),
 });
 
 // export const UpdateUserValidationSchema = z.object({
@@ -74,14 +78,6 @@ export const CreateUserValidationSchema = z.object({
 //     .nonempty("Password is required"),
 // });
 
-const UserLoginValidationSchema = z.object({
-  email: z.string().email().nonempty("Email is required"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters long")
-    .nonempty("Password is required"),
-});
-
 // const userUpdateSchema = z.object({
 //   firstName: z.string().optional(),
 //   lastName: z.string().optional(),
@@ -91,6 +87,5 @@ const UserLoginValidationSchema = z.object({
 
 export const UserValidation = {
   CreateUserValidationSchema,
-  UserLoginValidationSchema,
   // userUpdateSchema,
 };

@@ -8,6 +8,7 @@ import emailSender from "../../../shared/emailSender";
 import { UserStatus } from "@prisma/client";
 import httpStatus from "http-status";
 import crypto from 'crypto';
+import { generateOTP } from "../../../utils/GenerateOTP";
 
 // user login
 const loginUser = async (payload: { email: string; password: string }) => {
@@ -23,6 +24,7 @@ const loginUser = async (payload: { email: string; password: string }) => {
       "User not found! with this email " + payload.email
     );
   }
+
   const isCorrectPassword: boolean = await bcrypt.compare(
     payload.password,
     userData.password
@@ -36,6 +38,7 @@ const loginUser = async (payload: { email: string; password: string }) => {
       id: userData.id,
       email: userData.email,
       role: userData.role,
+      fullName: userData.fullName
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
@@ -67,7 +70,6 @@ const getMyProfile = async (userToken: string) => {
 };
 
 // change password
-
 const changePassword = async (
   userToken: string,
   newPassword: string,
@@ -85,8 +87,9 @@ const changePassword = async (
   if (!user) {
     throw new ApiError(404, "User not found");
   }
-
-
+  if (user.status === UserStatus.BLOCKED) {
+    throw new ApiError(403, "Your account is blocked");
+  }
   const isPasswordValid = await bcrypt.compare(oldPassword, user?.password);
 
   if (!isPasswordValid) {
@@ -105,6 +108,8 @@ const changePassword = async (
   });
   return { message: "Password changed successfully" };
 };
+
+// forgot password
 const forgotPassword = async (payload: { email: string }) => {
   // Fetch user data or throw if not found
   const userData = await prisma.user.findFirstOrThrow({
@@ -114,44 +119,41 @@ const forgotPassword = async (payload: { email: string }) => {
   });
 
   // Generate a new OTP
-  const otp = Number(crypto.randomInt(1000, 9999));
-
-  // Set OTP expiration time to 10 minutes from now
-  const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  const { otp, otpExpires } = generateOTP();
 
   // Create the email content
   const html = `
-<div style="font-family: Arial, sans-serif; color: #333; padding: 30px; background: linear-gradient(135deg, #6c63ff, #3f51b5); border-radius: 8px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px;">
-        <h2 style="color: #ffffff; font-size: 28px; text-align: center; margin-bottom: 20px;">
-            <span style="color: #ffeb3b;">Forgot Password OTP</span>
-        </h2>
-        <p style="font-size: 16px; color: #333; line-height: 1.5; text-align: center;">
-            Your forgot password OTP code is below.
-        </p>
-        <p style="font-size: 32px; font-weight: bold; color: #ff4081; text-align: center; margin: 20px 0;">
-            ${otp}
-        </p>
-        <div style="text-align: center; margin-bottom: 20px;">
-            <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-                This OTP will expire in <strong>10 minutes</strong>. If you did not request this, please ignore this email.
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 30px; background: linear-gradient(135deg, #6c63ff, #3f51b5); border-radius: 8px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px;">
+            <h2 style="color: #ffffff; font-size: 28px; text-align: center; margin-bottom: 20px;">
+                <span style="color: #ffeb3b;">Forgot Password OTP</span>
+            </h2>
+            <p style="font-size: 16px; color: #333; line-height: 1.5; text-align: center;">
+                Your forgot password OTP code is below.
             </p>
-            <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-                If you need assistance, feel free to contact us.
+            <p style="font-size: 32px; font-weight: bold; color: #ff4081; text-align: center; margin: 20px 0;">
+                ${otp}
             </p>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
+                    This OTP will expire in <strong>10 minutes</strong>. If you did not request this, please ignore this email.
+                </p>
+                <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
+                    If you need assistance, feel free to contact us.
+                </p>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="font-size: 12px; color: #999; text-align: center;">
+                    Best Regards,<br/>
+                    <span style="font-weight: bold; color: #3f51b5;">Nmbull Team</span><br/>
+                    <a href="mailto:support@nmbull.com" style="color: #ffffff; text-decoration: none; font-weight: bold;">Contact Support</a>
+                </p>
+            </div>
         </div>
-        <div style="text-align: center; margin-top: 30px;">
-            <p style="font-size: 12px; color: #999; text-align: center;">
-                Best Regards,<br/>
-                <span style="font-weight: bold; color: #3f51b5;">Nmbull Team</span><br/>
-                <a href="mailto:support@nmbull.com" style="color: #ffffff; text-decoration: none; font-weight: bold;">Contact Support</a>
-            </p>
-        </div>
-    </div>
-</div> `;
+    </div> `;
 
   // Send the OTP email to the user
-  await emailSender( userData.email, html,'Forgot Password OTP',);
+  await emailSender(userData.email, html, "Forgot Password OTP");
 
   // Update the user's OTP and expiration in the database
   await prisma.user.update({
@@ -162,7 +164,7 @@ const forgotPassword = async (payload: { email: string }) => {
     },
   });
 
-  return { message: 'Reset password OTP sent to your email successfully' };
+  return { message: "Reset password OTP sent to your email successfully" };
 };
 
 
@@ -174,14 +176,11 @@ const resendOtp = async (email: string) => {
   });
 
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'This user is not found!');
+    throw new ApiError(httpStatus.NOT_FOUND, "This user is not found!");
   }
 
   // Generate a new OTP
-  const otp = Number(crypto.randomInt(1000, 9999));
-
-  // Set OTP expiration time to 5 minutes from now
-  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+  const { otp, otpExpires } = generateOTP();
 
   // Create email content
   const html = `
@@ -216,7 +215,7 @@ const resendOtp = async (email: string) => {
   `;
 
   // Send the OTP to user's email
-  await emailSender(user.email, html, 'Resend OTP');
+  await emailSender(user.email, html, "Resend OTP");
 
   // Update the user's profile with the new OTP and expiration
   const updatedUser = await prisma.user.update({
@@ -227,8 +226,9 @@ const resendOtp = async (email: string) => {
     },
   });
 
-  return { message: 'OTP resent successfully'};
+  return { message: "OTP resent successfully" };
 };
+
 const verifyForgotPasswordOtp = async (payload: {
   email: string;
   otp: number;
@@ -273,7 +273,7 @@ const resetPassword = async (payload: { password: string; email: string }) => {
   });
 
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'This user is not found!');
+    throw new ApiError(httpStatus.NOT_FOUND, "This user is not found!");
   }
 
   // Hash the new password
@@ -283,9 +283,9 @@ const resetPassword = async (payload: { password: string; email: string }) => {
   await prisma.user.update({
     where: { email: payload.email },
     data: {
-      password: hashedPassword, // Update with the hashed password
-      otp: null, // Clear the OTP
-      expirationOtp: null, // Clear OTP expiration
+      password: hashedPassword,
+      otp: null,
+      expirationOtp: null, 
     },
   });
 

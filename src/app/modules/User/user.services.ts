@@ -1,20 +1,24 @@
-import prisma from "../../../shared/prisma";
-import ApiError from "../../../errors/ApiErrors";
-import { IUser, IUserFilterRequest } from "./user.interface";
+import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { IPaginationOptions } from "../../../interfaces/paginations";
-import { paginationHelper } from "../../../helpars/paginationHelper";
-import { Prisma, User, UserRole } from "@prisma/client";
-import { userSearchAbleFields } from "./user.costant";
-import config from "../../../config";
-import httpStatus from "http-status";
 import { Request } from "express";
-import { fileUploader } from "../../../helpars/fileUploader";
+import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
+import config from "../../../config";
+import ApiError from "../../../errors/ApiErrors";
+import { fileUploader } from "../../../helpars/fileUploader";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
+import { paginationHelper } from "../../../helpars/paginationHelper";
+import { IPaginationOptions } from "../../../interfaces/paginations";
+import prisma from "../../../shared/prisma";
+import { generateOTP } from "../../../utils/GenerateOTP";
+import { userSearchAbleFields } from "./user.costant";
+import { IUser, IUserFilterRequest } from "./user.interface";
 
 // Create a new user in the database.
-const createUserIntoDb = async (payload: User) => {
+const createUserIntoDb = async (payload: IUser) => {
+  console.log("payload ", payload);
+
+  // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
       email: payload.email,
@@ -35,11 +39,16 @@ const createUserIntoDb = async (payload: User) => {
     Number(config.bcrypt_salt_rounds)
   );
 
-  // generate otp for user
-  const otp = Number(Math.floor(1000 + Math.random() * 9999).toString() as unknown) as number;
+  // Generate a new OTP
+  const { otp, otpExpires } = generateOTP();
 
   const result = await prisma.user.create({
-    data: { ...payload, password: hashedPassword, otp, expirationOtp: new Date(Date.now() + 5 * 60 * 1000) },
+    data: {
+      ...payload,
+      password: hashedPassword,
+      otp,
+      expirationOtp: otpExpires,
+    },
     select: {
       id: true,
       email: true,
@@ -71,10 +80,10 @@ const getUsersFromDb = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = params;
 
-  const andCondions: Prisma.UserWhereInput[] = [];
+  const andConditions: Prisma.UserWhereInput[] = [];
 
   if (params.searchTerm) {
-    andCondions.push({
+    andConditions.push({
       OR: userSearchAbleFields.map((field) => ({
         [field]: {
           contains: params.searchTerm,
@@ -85,7 +94,7 @@ const getUsersFromDb = async (
   }
 
   if (Object.keys(filterData).length > 0) {
-    andCondions.push({
+    andConditions.push({
       AND: Object.keys(filterData).map((key) => ({
         [key]: {
           equals: (filterData as any)[key],
@@ -93,10 +102,10 @@ const getUsersFromDb = async (
       })),
     });
   }
-  const whereConditons: Prisma.UserWhereInput = { AND: andCondions };
+  const whereConditions: Prisma.UserWhereInput = { AND: andConditions };
 
   const result = await prisma.user.findMany({
-    where: whereConditons,
+    where: whereConditions,
     skip,
     orderBy:
       options.sortBy && options.sortOrder
@@ -110,14 +119,16 @@ const getUsersFromDb = async (
       id: true,
       fullName: true,
       email: true,
-      // profileImage: true,
       role: true,
+      phoneNumber: true,
+      dob: true,
+      address: true,
       createdAt: true,
       updatedAt: true,
     },
   });
   const total = await prisma.user.count({
-    where: whereConditons,
+    where: whereConditions,
   });
 
   if (!result || result.length === 0) {
@@ -208,8 +219,6 @@ const updateUserIntoDb = async (payload: IUser, id: string) => {
 
   return result;
 };
-
-
 
 export const userService = {
   createUserIntoDb,
