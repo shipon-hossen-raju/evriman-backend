@@ -29,17 +29,22 @@ const createUserIntoDb = async (payload: User) => {
       );
     }
   }
+
   const hashedPassword: string = await bcrypt.hash(
     payload.password,
     Number(config.bcrypt_salt_rounds)
   );
 
+  // generate otp for user
+  const otp = Number(Math.floor(1000 + Math.random() * 9999).toString() as unknown) as number;
+
   const result = await prisma.user.create({
-    data: { ...payload, password: hashedPassword },
+    data: { ...payload, password: hashedPassword, otp, expirationOtp: new Date(Date.now() + 5 * 60 * 1000) },
     select: {
       id: true,
       email: true,
       role: true,
+      fullName: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -49,12 +54,13 @@ const createUserIntoDb = async (payload: User) => {
       id: result.id,
       email: result.email,
       role: result.role,
+      name: result.fullName,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
   );
 
-  return { result, token };
+  return { result, token, otp };
 };
 
 // reterive all users from the database also searcing anf filetering
@@ -104,7 +110,7 @@ const getUsersFromDb = async (
       id: true,
       fullName: true,
       email: true,
-      profileImage: true,
+      // profileImage: true,
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -129,7 +135,6 @@ const getUsersFromDb = async (
 
 // update profile by user won profile uisng token or email and id
 const updateProfile = async (req: Request) => {
-  console.log(req.file, req.body.data);
   const file = req.file;
   const stringData = req.body.data;
   let image;
@@ -155,14 +160,14 @@ const updateProfile = async (req: Request) => {
     data: {
       fullName: parseData.fullName || existingUser.fullName,
       email: parseData.email || existingUser.email,
-      profileImage: image || existingUser.profileImage,
+      // profileImage: image || existingUser.profileImage,
       updatedAt: new Date(), // Assuming your model has an `updatedAt` field
     },
     select: {
       id: true,
       fullName: true,
       email: true,
-      profileImage: true,
+      // profileImage: true,
     },
   });
 
@@ -188,7 +193,7 @@ const updateUserIntoDb = async (payload: IUser, id: string) => {
       id: true,
       fullName: true,
       email: true,
-      profileImage: true,
+      // profileImage: true,
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -211,5 +216,4 @@ export const userService = {
   getUsersFromDb,
   updateProfile,
   updateUserIntoDb,
-
 };

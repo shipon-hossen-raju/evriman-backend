@@ -31,7 +31,6 @@ router.put(
   AuthController.changePassword
 );
 
-
 router.post(
   '/forgot-password',
   AuthController.forgotPassword
@@ -44,10 +43,15 @@ router.post(
   '/verify-otp',
   AuthController.verifyForgotPasswordOtp
 );
-
 router.post(
   '/reset-password',
   AuthController.resetPassword
-)
+);
+
+// verify email
+router.post(
+  '/verify-email',
+  AuthController.verifyEmail
+);
 
 export const AuthRoutes = router;

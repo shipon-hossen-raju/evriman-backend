@@ -8,6 +8,7 @@ import emailSender from "../../../shared/emailSender";
 import { UserStatus } from "@prisma/client";
 import httpStatus from "http-status";
 import crypto from 'crypto';
+
 // user login
 const loginUser = async (payload: { email: string; password: string }) => {
   const userData = await prisma.user.findUnique({
@@ -57,7 +58,6 @@ const getMyProfile = async (userToken: string) => {
     select: {
       id: true,
       email: true,
-      profileImage: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -256,8 +256,8 @@ const verifyForgotPasswordOtp = async (payload: {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      otp: null, // Clear the OTP
-      expirationOtp: null, // Clear the OTP expiration
+      otp: null,
+      expirationOtp: null,
     },
   });
 
@@ -291,6 +291,30 @@ const resetPassword = async (payload: { password: string; email: string }) => {
 
   return { message: 'Password reset successfully' };
 };
+
+// verify email
+const verifyEmail = async (email: string, verificationCode: number) => {
+  // Check if the user exists
+  const user = await prisma.user.findUnique({
+    where: { email: email },
+  });
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'This user is not found!');
+  }
+
+  // Check if the verification code is valid
+  if (user.otp !== verificationCode) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid verification code');
+  }
+
+  // Update the user's status to verified
+  await prisma.user.update({
+    where: { email: email },
+    data: { isVerified: true },
+  });
+  return { message: 'Email verified successfully' };
+}
+
 export const AuthServices = {
   loginUser,
   getMyProfile,
@@ -298,5 +322,6 @@ export const AuthServices = {
   forgotPassword,
   resetPassword,
   resendOtp,
-  verifyForgotPasswordOtp
+  verifyForgotPasswordOtp,
+  verifyEmail,
 };
