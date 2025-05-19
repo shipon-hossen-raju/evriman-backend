@@ -1,13 +1,11 @@
 import { Request, Response } from "express";
-import catchAsync from "../../../shared/catchAsync";
-import { AuthServices } from "./auth.service";
-import sendResponse from "../../../shared/sendResponse";
 import httpStatus from "http-status";
-import { string } from "zod";
+import catchAsync from "../../../shared/catchAsync";
+import sendResponse from "../../../shared/sendResponse";
+import { authServices } from "./auth.service";
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
-
-  const result = await AuthServices.loginUser(req.body);
+  const result = await authServices.loginUser(req.body);
   res.cookie("token", result.token, { httpOnly: true });
 
   sendResponse(res, {
@@ -38,7 +36,7 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
   const userToken = req.headers.authorization;
 
-  const result = await AuthServices.getMyProfile(userToken as string);
+  const result = await authServices.getMyProfile(userToken as string);
   sendResponse(res, {
     success: true,
     statusCode: 201,
@@ -52,7 +50,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   const userToken = req.headers.authorization;
   const { oldPassword, newPassword } = req.body;
 
-  const result = await AuthServices.changePassword(
+  const result = await authServices.changePassword(
     userToken as string,
     newPassword,
     oldPassword
@@ -65,59 +63,56 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 // forgot password
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
-
-  const result= await AuthServices.forgotPassword(req.body);
+  const result = await authServices.forgotPassword(req.body);
 
   sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Check your email!",
-      data: result
-  })
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Check your email!",
+    data: result,
+  });
 });
 const resendOtp = catchAsync(async (req: Request, res: Response) => {
-
-  const result= await AuthServices.resendOtp(req.body.email);
+  const result = await authServices.resendOtp(req.body.email);
 
   sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Check your email!",
+    data: result,
+  });
+});
+const verifyForgotPasswordOtp = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await authServices.verifyForgotPasswordOtp(req.body);
+
+    sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Check your email!",
-      data: result
-  })
-});
-const verifyForgotPasswordOtp = catchAsync(async (req: Request, res: Response) => {
-
-  const result= await AuthServices.verifyForgotPasswordOtp(req.body);
-
-  sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Check your email!",
-      data: result
-  })
-});
+      data: result,
+    });
+  }
+);
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-
-  await AuthServices.resetPassword(req.body);
+  await authServices.resetPassword(req.body);
 
   sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Password Reset!",
-      data: null
-  })
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Password Reset!",
+    data: null,
+  });
 });
 
 // verify email
 const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   const { email, verificationCode } = req.body;
 
-  const result = await AuthServices.verifyEmail(email, verificationCode);
+  const result = await authServices.verifyEmail(email, verificationCode);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -127,9 +122,7 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
-export const AuthController = {
+export const authController = {
   loginUser,
   logoutUser,
   getMyProfile,
@@ -138,5 +131,5 @@ export const AuthController = {
   resetPassword,
   resendOtp,
   verifyForgotPasswordOtp,
-  verifyEmail
+  verifyEmail,
 };

@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ====================== ENUMS ======================
+// ====================== User ======================
 enum LoginType {
   USER
   PARTNER
@@ -32,8 +32,6 @@ enum UserStatus {
   INACTIVE
   BLOCKED
 }
-
-// ====================== MODELS ======================
 
 model User {
   id              String     @id @default(auto()) @map("_id") @db.ObjectId
@@ -61,6 +59,25 @@ model User {
   @@map("users")
 }
 
+// ================ Subscription ================
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum UserType {
+  ALL
+  PAID
+  NON_PAID
+  SELECTED
+}
+
+enum OfferCodeStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // model for subscription
 model SubscriptionPlan {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -71,5 +88,38 @@ model SubscriptionPlan {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  offerCodes     OfferCodeSubscriptionPlan[]
+
   @@map("subscriptions")
+}
+
+// offer code model
+model OfferCode {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  code            String       @unique
+
+  discountType    DiscountType 
+  discountValue   Float
+
+  applicablePlans OfferCodeSubscriptionPlan[]
+
+  userType       UserType
+  targetUserId   String[]
+
+  expiresAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+
+  @@map("offer_codes")
+}
+
+// explicit join model for many-to-many relation
+model OfferCodeSubscriptionPlan {
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  offerCode          OfferCode         @relation(fields: [offerCodeId], references: [id])
+  offerCodeId        String            @db.ObjectId
+  subscriptionPlan   SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String            @db.ObjectId
 }
