@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
+import { fileUploader } from "../../../helpars/fileUploader";
 import catchAsync from "../../../shared/catchAsync";
 import emailSender, { OtpHtml } from "../../../shared/emailSender";
 import pick from "../../../shared/pick";

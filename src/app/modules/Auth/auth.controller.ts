@@ -9,13 +9,15 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 
   const result = await AuthServices.loginUser(req.body);
   res.cookie("token", result.token, { httpOnly: true });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "User logged in successfully",
+    message: `${req.body.loginType} logged in successfully`,
     data: result,
   });
 });
+
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
   // Clear the token cookie
   res.clearCookie("token", {
@@ -101,9 +103,7 @@ const verifyForgotPasswordOtp = catchAsync(async (req: Request, res: Response) =
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
-
-
-  await AuthServices.resetPassword( req.body);
+  await AuthServices.resetPassword(req.body);
 
   sendResponse(res, {
       statusCode: httpStatus.OK,

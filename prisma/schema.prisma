@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Database connection
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
@@ -36,11 +37,13 @@ enum UserStatus {
 
 model User {
   id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String     @unique
   fullName        String
   email           String     @unique
   otp             Int?
   expirationOtp   DateTime?
   password        String
+  address         String
   role            UserRole   @default(USER)
   status          UserStatus @default(ACTIVE)
   createdAt       DateTime   @default(now())
@@ -56,4 +59,17 @@ model User {
   isDeceased      Boolean    @default(false)
 
   @@map("users")
+}
+
+// model for subscription
+model SubscriptionPlan {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  contactLimit   Int
+  isActive       Boolean  @default(true)
+  pricingOptions Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("subscriptions")
 }

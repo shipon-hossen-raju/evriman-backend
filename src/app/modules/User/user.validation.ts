@@ -38,6 +38,8 @@ export const CreateUserValidationSchema = z.object({
     errorMap: () => ({ message: "You must accept the privacy policy" }),
   }),
   referralCode: z.string().optional(),
+  address: z.string(),
+  idDocument: z.string().url("ID document is required"),
 });
 
 // export const UpdateUserValidationSchema = z.object({
@@ -74,14 +76,6 @@ export const CreateUserValidationSchema = z.object({
 //     .nonempty("Password is required"),
 // });
 
-const UserLoginValidationSchema = z.object({
-  email: z.string().email().nonempty("Email is required"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters long")
-    .nonempty("Password is required"),
-});
-
 // const userUpdateSchema = z.object({
 //   firstName: z.string().optional(),
 //   lastName: z.string().optional(),
@@ -91,6 +85,5 @@ const UserLoginValidationSchema = z.object({
 
 export const UserValidation = {
   CreateUserValidationSchema,
-  UserLoginValidationSchema,
   // userUpdateSchema,
 };
