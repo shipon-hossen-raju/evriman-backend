@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { LoginType, Prisma, User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { Request } from "express";
 import httpStatus from "http-status";
@@ -12,11 +12,10 @@ import { IPaginationOptions } from "../../../interfaces/paginations";
 import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
-import { IUser, IUserFilterRequest } from "./user.interface";
+import { IUserFilterRequest } from "./user.interface";
 
 // Create a new user in the database.
-const createUserIntoDb = async (payload: IUser) => {
-  console.log("payload", payload);
+const createUserIntoDb = async (payload: User) => {
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -41,17 +40,39 @@ const createUserIntoDb = async (payload: IUser) => {
   // Generate a new OTP
   const { otp, otpExpires } = generateOTP();
 
+  // create user id
+  const userId = await prisma.user.count();
+  const userIdString = (userId + 100001).toString();
+  const userIdNumber = parseInt(userIdString, 10);
+
   const userData = {
     ...payload,
+    userId: userIdNumber.toString(),
     password: hashedPassword,
     otp,
     expirationOtp: otpExpires,
+    loginType: payload.loginType as LoginType,
+    phoneNumber: payload.phoneNumber,
+    fullName: payload.fullName,
+    role: payload.role,
+    status: payload.status,
+    address: payload.address,
+    dob: payload.dob,
+    idDocument: payload.idDocument,
+    referralCode: payload.referralCode,
+    termsAccepted: payload.termsAccepted,
+    privacyAccepted: payload.privacyAccepted,
+    isVerified: payload.isVerified,
+    isDeceased: payload.isDeceased,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const result = await prisma.user.create({
     data: userData,
     select: {
       id: true,
+      userId: true,
       email: true,
       role: true,
       fullName: true,
@@ -187,7 +208,7 @@ const updateProfile = async (req: Request) => {
 };
 
 // update user data into database by id fir admin
-const updateUserIntoDb = async (payload: IUser, id: string) => {
+const updateUserIntoDb = async (payload: User, id: string) => {
   const userInfo = await prisma.user.findUniqueOrThrow({
     where: {
       id: id,

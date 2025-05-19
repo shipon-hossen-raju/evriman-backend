@@ -16,6 +16,7 @@ export const initiateSuperAdmin = async () => {
     otp: 4321,
     expirationOtp: new Date(Date.now() + 60 * 60 * 1000),
     address: "Remote",
+    userId: "100001",
   };
 
   const isExistUser = await prisma.user.findUnique({
