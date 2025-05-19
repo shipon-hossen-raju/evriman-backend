@@ -21,27 +21,25 @@ const dateSchema = z.preprocess((arg) => {
 
 // Main schemas
 export const CreateUserValidationSchema = z.object({
-  image: z.any().optional(),
-  data: z.object({
-    fullName: z.string().min(2, "Full name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    password: passwordSchema,
-    phoneNumber: phoneSchema,
-    dob: dateSchema.refine(
-      (date) => date <= new Date(),
-      "Date of birth cannot be in the future"
-    ),
-    role: z.nativeEnum(UserRole).default(UserRole.USER),
-    loginType: z.nativeEnum(LoginType).default(LoginType.USER),
-    termsAccepted: z.literal(true, {
-      errorMap: () => ({ message: "You must accept the terms and conditions" }),
-    }),
-    privacyAccepted: z.literal(true, {
-      errorMap: () => ({ message: "You must accept the privacy policy" }),
-    }),
-    referralCode: z.string().optional(),
-    address: z.string(),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: passwordSchema,
+  phoneNumber: phoneSchema,
+  dob: dateSchema.refine(
+    (date) => date <= new Date(),
+    "Date of birth cannot be in the future"
+  ),
+  role: z.nativeEnum(UserRole).default(UserRole.USER),
+  loginType: z.nativeEnum(LoginType).default(LoginType.USER),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the terms and conditions" }),
   }),
+  privacyAccepted: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the privacy policy" }),
+  }),
+  referralCode: z.string().optional(),
+  address: z.string(),
+  idDocument: z.string().url("ID document is required"),
 });
 
 // export const UpdateUserValidationSchema = z.object({

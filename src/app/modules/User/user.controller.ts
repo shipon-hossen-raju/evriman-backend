@@ -10,24 +10,7 @@ import { userFilterableFields } from "./user.costant";
 import { userService } from "./user.services";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
-  // Process the uploaded file
-  const file = req.file;
-  if (!file) {
-    throw new ApiError(400, "File is required");
-  }
-
-  const image = await fileUploader.uploadToDigitalOcean(file);
-  const imageUrl = image?.Location;
-
-  const userData = {
-    ...req.body,
-    idDocument: imageUrl,
-  };
-
-  // userData delete file 
-  delete userData.file;
-
-  const result = await userService.createUserIntoDb(userData);
+  const result = await userService.createUserIntoDb(req.body);
 
   // send email to user otp
   const email = await emailSender(

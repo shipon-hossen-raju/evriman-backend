@@ -20,34 +20,3 @@ export const parseBody = catchAsync(
     next();
   }
 );
-
-// import { Request, Response } from "express";
-// import ApiError from "../errors/ApiErrors";
-// import { fileUploader } from "../helpars/fileUploader";
-// import catchAsync from "../shared/catchAsync";
-
-// export const fromDataFileUpload = catchAsync(
-//   async (req: Request, res: Response) => {
-//     // Process the uploaded file
-//     const file = req.file;
-//     if (!file) {
-//       throw new ApiError(400, "File is required");
-//     }
-
-//     const image = await fileUploader.uploadToDigitalOcean(file);
-//     const imageUrl = image?.Location;
-
-//     console.log("imageUrl ", imageUrl);
-
-//     console.log("req.body ", req.body);
-//     console.log("req.body.data ", req.body.data);
-//       const stringData = req.body.data;
-//       let parseData;
-//       if (stringData) {
-//         parseData = JSON.parse(stringData);
-//       }
-//       console.log("parseData ", parseData);
-
-//     console.log("19 image ", image);
-//   }
-// );

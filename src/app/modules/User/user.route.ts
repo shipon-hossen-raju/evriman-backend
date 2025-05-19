@@ -1,11 +1,11 @@
-import express from "express";
-import validateRequest from "../../middlewares/validateRequest";
-import { UserValidation } from "./user.validation";
-import { userController } from "./user.controller";
-import auth from "../../middlewares/auth";
 import { UserRole } from "@prisma/client";
+import express from "express";
 import { fileUploader } from "../../../helpars/fileUploader";
-import { parseBody } from "../../../utils/parseBody";
+import { parseBodyFileUploader } from "../../../utils/parseBodyFileUploader";
+import auth from "../../middlewares/auth";
+import validateRequest from "../../middlewares/validateRequest";
+import { userController } from "./user.controller";
+import { UserValidation } from "./user.validation";
 // import { fromDataFileUpload } from "../../../utils/FromDataFileUpload";
 
 const router = express.Router();
@@ -14,9 +14,8 @@ const router = express.Router();
 router.post(
   "/register",
   fileUploader.uploadSingle,
-  parseBody,
-  // fromDataFileUpload,
-  // validateRequest(UserValidation.CreateUserValidationSchema),
+  parseBodyFileUploader,
+  validateRequest(UserValidation.CreateUserValidationSchema),
   userController.createUser
 );
 

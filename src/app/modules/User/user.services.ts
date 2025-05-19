@@ -16,8 +16,7 @@ import { IUser, IUserFilterRequest } from "./user.interface";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: IUser) => {
-  console.log("payload ", payload);
-
+  console.log("payload", payload);
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -42,13 +41,15 @@ const createUserIntoDb = async (payload: IUser) => {
   // Generate a new OTP
   const { otp, otpExpires } = generateOTP();
 
+  const userData = {
+    ...payload,
+    password: hashedPassword,
+    otp,
+    expirationOtp: otpExpires,
+  };
+
   const result = await prisma.user.create({
-    data: {
-      ...payload,
-      password: hashedPassword,
-      otp,
-      expirationOtp: otpExpires,
-    },
+    data: userData,
     select: {
       id: true,
       email: true,

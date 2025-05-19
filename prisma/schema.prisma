@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Database connection
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
@@ -57,4 +58,17 @@ model User {
   isDeceased      Boolean    @default(false)
 
   @@map("users")
+}
+
+// model for subscription
+model SubscriptionPlan {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  contactLimit   Int
+  isActive       Boolean  @default(true)
+  pricingOptions Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("subscriptions")
 }
