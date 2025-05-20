@@ -61,6 +61,46 @@ model User {
 
 // ================ Subscription ================
 
+type EligibilityJson {
+  minAge Int
+}
+
+enum LevelId {
+  Price_1
+  Price_2
+  Price_3
+}
+
+model SubscriptionPlan {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  contactLimit Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pricingOptions PricingOption[]
+  offerCodes     OfferCodeSubscriptionPlan[]
+
+  @@map("subscriptions")
+}
+
+model PricingOption {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  label            String
+  levelId          LevelId
+  amount           Float
+  durationInMonths Int?
+  eligibility      EligibilityJson?
+
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String           @db.ObjectId
+
+  @@unique([levelId, subscriptionPlanId])
+  @@map("pricing_options")
+}
+
+// ===================== Offer Codes ====================
 enum DiscountType {
   PERCENTAGE
   FIXED
@@ -73,40 +113,20 @@ enum UserType {
   SELECTED
 }
 
-enum OfferCodeStatus {
-  ACTIVE
-  INACTIVE
-}
-
-// model for subscription
-model SubscriptionPlan {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  contactLimit   Int
-  isActive       Boolean  @default(true)
-  pricingOptions Json
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  offerCodes     OfferCodeSubscriptionPlan[]
-
-  @@map("subscriptions")
-}
-
 // offer code model
 model OfferCode {
-  id              String       @id @default(auto()) @map("_id") @db.ObjectId
-  code            String       @unique
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  code String @unique
 
-  discountType    DiscountType 
-  discountValue   Float
+  discountType  DiscountType
+  discountValue Float
 
   applicablePlans OfferCodeSubscriptionPlan[]
 
-  userType       UserType
-  targetUserId   String[]
+  userType     UserType
+  targetUserId String[]
 
-  expiresAt      DateTime?
+  expiresAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,9 +137,9 @@ model OfferCode {
 
 // explicit join model for many-to-many relation
 model OfferCodeSubscriptionPlan {
-  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
-  offerCode          OfferCode         @relation(fields: [offerCodeId], references: [id])
-  offerCodeId        String            @db.ObjectId
-  subscriptionPlan   SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id])
-  subscriptionPlanId String            @db.ObjectId
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  offerCode          OfferCode        @relation(fields: [offerCodeId], references: [id])
+  offerCodeId        String           @db.ObjectId
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String           @db.ObjectId
 }
