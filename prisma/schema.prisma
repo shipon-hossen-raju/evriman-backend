@@ -96,6 +96,8 @@ model PricingOption {
   subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
   subscriptionPlanId String           @db.ObjectId
 
+  offerCodes OfferCodePricingOption[] @relation("OfferCodesForPricingOption")
+
   @@unique([levelId, subscriptionPlanId])
   @@map("pricing_options")
 }
@@ -121,12 +123,13 @@ model OfferCode {
   discountType  DiscountType
   discountValue Float
 
-  applicablePlans OfferCodeSubscriptionPlan[]
-
   userType     UserType
   targetUserId String[]
 
   expiresAt DateTime?
+
+  applicablePlans       OfferCodeSubscriptionPlan[]
+  pricingOptionsLevelId OfferCodePricingOption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -135,11 +138,20 @@ model OfferCode {
   @@map("offer_codes")
 }
 
-// explicit join model for many-to-many relation
 model OfferCodeSubscriptionPlan {
   id                 String           @id @default(auto()) @map("_id") @db.ObjectId
   offerCode          OfferCode        @relation(fields: [offerCodeId], references: [id])
   offerCodeId        String           @db.ObjectId
   subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
   subscriptionPlanId String           @db.ObjectId
+}
+
+model OfferCodePricingOption {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
+  offerCodeId String    @db.ObjectId
+
+  pricingOption   PricingOption @relation("OfferCodesForPricingOption", fields: [pricingOptionId], references: [id])
+  pricingOptionId String        @db.ObjectId
 }

@@ -2,11 +2,22 @@
 import express from "express";
 import offerCodeController from "./offerCode.controller";
 import validateRequest from "../../middlewares/validateRequest";
-import { OfferCodeSchema } from "./offerCode.validation";
+import { offerCodeSchema } from "./offerCode.validation";
 
 const router = express.Router();
 
-router.post("/create", validateRequest(OfferCodeSchema), offerCodeController.createOfferCode);
+// Route to create a new offer code
+router.post(
+  "/create",
+  validateRequest(offerCodeSchema),
+  offerCodeController.createOfferCode
+);
+
+// Route to get all offer codes
+router.get(
+  "/all",
+  offerCodeController.getAllOfferCodes
+);
 
 const offerCodeRoutes = router;
 
