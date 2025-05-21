@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ====================== ENUMS ======================
+// ====================== User ======================
 enum LoginType {
   USER
   PARTNER
@@ -32,8 +32,6 @@ enum UserStatus {
   INACTIVE
   BLOCKED
 }
-
-// ====================== MODELS ======================
 
 model User {
   id              String     @id @default(auto()) @map("_id") @db.ObjectId
@@ -61,15 +59,99 @@ model User {
   @@map("users")
 }
 
-// model for subscription
+// ================ Subscription ================
+
+type EligibilityJson {
+  minAge Int
+}
+
+enum LevelId {
+  Price_1
+  Price_2
+  Price_3
+}
+
 model SubscriptionPlan {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  contactLimit   Int
-  isActive       Boolean  @default(true)
-  pricingOptions Json
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  contactLimit Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pricingOptions PricingOption[]
+  offerCodes     OfferCodeSubscriptionPlan[]
 
   @@map("subscriptions")
+}
+
+model PricingOption {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  label            String
+  levelId          LevelId
+  amount           Float
+  durationInMonths Int?
+  eligibility      EligibilityJson?
+
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String           @db.ObjectId
+
+  offerCodes OfferCodePricingOption[] @relation("OfferCodesForPricingOption")
+
+  @@unique([levelId, subscriptionPlanId])
+  @@map("pricing_options")
+}
+
+// ===================== Offer Codes ====================
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum UserType {
+  ALL
+  PAID
+  NON_PAID
+  SELECTED
+}
+
+// offer code model
+model OfferCode {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  code String @unique
+
+  discountType  DiscountType
+  discountValue Float
+
+  userType     UserType
+  targetUserId String[]
+
+  expiresAt DateTime?
+
+  applicablePlans       OfferCodeSubscriptionPlan[]
+  pricingOptionsLevelId OfferCodePricingOption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+
+  @@map("offer_codes")
+}
+
+model OfferCodeSubscriptionPlan {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  offerCode          OfferCode        @relation(fields: [offerCodeId], references: [id])
+  offerCodeId        String           @db.ObjectId
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String           @db.ObjectId
+}
+
+model OfferCodePricingOption {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
+  offerCodeId String    @db.ObjectId
+
+  pricingOption   PricingOption @relation("OfferCodesForPricingOption", fields: [pricingOptionId], references: [id])
+  pricingOptionId String        @db.ObjectId
 }

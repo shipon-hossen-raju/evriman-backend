@@ -1,21 +1,24 @@
+import { LevelId } from "@prisma/client";
+
 // For Eligibility
 export type Eligibility = {
   minAge: number;
 };
 
-// For each pricing option
-export type PricingOption = {
-  id: string;
+
+export type PricingOptionInput = {
   label: string;
+  levelId: LevelId;
   amount: number;
-  durationInMonths: number | null;
-  eligibility?: Eligibility;
+  durationInMonths?: number;
+  eligibility?: {
+    minAge: number;
+  };
 };
 
-// Final shape of a Subscription Plan
-export type SubscriptionPlanInput = {
+export type SubscriptionPayload = {
   name: string;
   contactLimit: number;
   isActive?: boolean;
-  pricingOptions: PricingOption[];
+  pricingOptions: PricingOptionInput[];
 };

@@ -5,8 +5,7 @@ import { parseBodyFileUploader } from "../../../utils/parseBodyFileUploader";
 import auth from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import { userController } from "./user.controller";
-import { UserValidation } from "./user.validation";
-// import { fromDataFileUpload } from "../../../utils/FromDataFileUpload";
+import { userValidation } from "./user.validation";
 
 const router = express.Router();
 
@@ -15,7 +14,7 @@ router.post(
   "/register",
   fileUploader.uploadSingle,
   parseBodyFileUploader,
-  validateRequest(UserValidation.CreateUserValidationSchema),
+  validateRequest(userValidation.CreateUserValidationSchema),
   userController.createUser
 );
 

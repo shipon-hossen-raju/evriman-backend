@@ -1,6 +1,6 @@
 import express from "express";
 import validateRequest from "../../middlewares/validateRequest";
-import { subscriptionPlanSchema, UpdateSubscriptionPlanSchema } from "./subscription.validation";
+import { subscriptionPlanSchema } from "./subscription.validation";
 import { subscriptionsController } from "./subscriptions.controller";
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.get("/:id", subscriptionsController.findSingleSubscription);
 // find & update subscription
 router.patch(
   "/:id",
-  validateRequest(UpdateSubscriptionPlanSchema),
+  // validateRequest(UpdateSubscriptionPlanSchema),
   subscriptionsController.updateSubscription
 );
 

@@ -1,25 +1,25 @@
 import prisma from "../../../shared/prisma";
-import { SubscriptionPlanInput } from "./subscription.type";
+import { PricingOptionInput, SubscriptionPayload } from "./subscription.type";
 
 // create subscription
-const createSubscription = async (payload: SubscriptionPlanInput) => {
-
+const createSubscription = async (payload: SubscriptionPayload) => {
   const result = await prisma.subscriptionPlan.create({
     data: {
       name: payload.name,
       contactLimit: payload.contactLimit,
       isActive: payload.isActive ?? true,
       pricingOptions: {
-        data: payload.pricingOptions.map((option, idx) => ({
-          id: `${idx + 1}`,
+        create: payload.pricingOptions.map((option: PricingOptionInput) => ({
           label: option.label,
+          levelId: option.levelId,
           amount: option.amount,
-          durationInMonths: option.durationInMonths,
-          eligibility: option.eligibility
-            ? JSON.stringify(option.eligibility)
-            : null,
+          durationInMonths: option.durationInMonths || null,
+          eligibility: option.eligibility || null,
         })),
       },
+    },
+    include: {
+      pricingOptions: true,
     },
   });
 
@@ -28,19 +28,28 @@ const createSubscription = async (payload: SubscriptionPlanInput) => {
 
 // find all subscriptions
 const findAllSubscriptions = async () => {
-  const result = await prisma.subscriptionPlan.findMany();
+  const result = await prisma.subscriptionPlan.findMany(
+    {
+      include: {
+        pricingOptions: true,
+      },
+    }
+  );
 
   if (!result.length) {
     throw new Error("Subscription not found");
   }
 
   return result;
-}
+};
 
 // find single subscription
 const findSingleSubscription = async (id: string) => {
   const result = await prisma.subscriptionPlan.findUnique({
     where: { id },
+    include: {
+      pricingOptions: true,
+    },
   });
 
   if (!result) {
@@ -49,49 +58,63 @@ const findSingleSubscription = async (id: string) => {
   return result;
 };
 
-// find & update subscription 
-const updateSubscription = async (id: string, payload: SubscriptionPlanInput) => {
-  const result = await prisma.subscriptionPlan.update({
-    where: { id },
-    data: {
-      name: payload.name,
-      contactLimit: payload.contactLimit,
-      isActive: payload.isActive ?? true,
-      pricingOptions: {
-        data: payload.pricingOptions.map((option, idx) => ({
-          id: `${idx + 1}`,
-          label: option.label,
-          amount: option.amount,
-          durationInMonths: option.durationInMonths,
-          eligibility: option.eligibility
-            ? JSON.stringify(option.eligibility)
-            : null,
-        })),
-      },
-    },
-  });
-
-  return result;
-}
- 
-// find & delete subscription
-const deleteSubscription = async (id: string) => {
+// find & update subscription
+const updateSubscription = async (id: string, payload: SubscriptionPayload) => {
   const result = await prisma.subscriptionPlan.findFirst({
     where: { id },
+    include: {
+      pricingOptions: true,
+    },
   });
 
   if (!result) {
     throw new Error("Subscription not found");
   }
 
-  const deletedResult = await prisma.subscriptionPlan.delete({
+  const updatedResult = await prisma.subscriptionPlan.update({
     where: { id },
+    data: {
+      name: payload.name,
+      contactLimit: payload.contactLimit,
+      isActive: payload.isActive ?? true,
+      pricingOptions: {
+        deleteMany: {
+          subscriptionPlanId: id,
+        },
+        create: payload.pricingOptions.map((option) => ({
+          label: option.label,
+          levelId: option.levelId,
+          amount: option.amount,
+          durationInMonths: option.durationInMonths || null,
+          eligibility: option.eligibility || null,
+        })),
+      },
+    },
+    include: {
+      pricingOptions: true,
+    },
   });
 
+  return updatedResult;
+};
 
+// find & delete subscription
+const deleteSubscription = async (id: string) => {
+  // First, delete related pricing options
+  const pricingOptions = await prisma.pricingOption.deleteMany({
+    where: { subscriptionPlanId: id },
+  });
 
-  return deletedResult;
-}
+  // Then, delete the subscription plan
+  const deletedResult = await prisma.subscriptionPlan.delete({
+    where: { id },
+    include: {
+      pricingOptions: true,
+    },
+  });
+
+  return { deletedResult, pricingOptions };
+};
 
 export const subscriptionService = {
   createSubscription,

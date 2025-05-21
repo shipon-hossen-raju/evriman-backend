@@ -1,5 +1,5 @@
-  import { z } from "zod";
 import { LoginType, UserRole } from "@prisma/client";
+import { z } from "zod";
 
 // Helper schemas
 const passwordSchema = z
@@ -83,7 +83,7 @@ export const CreateUserValidationSchema = z.object({
 //   profession: z.string().optional(),
 // });
 
-export const UserValidation = {
+export const userValidation = {
   CreateUserValidationSchema,
   // userUpdateSchema,
 };

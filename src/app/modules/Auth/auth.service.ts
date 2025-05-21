@@ -1,13 +1,12 @@
+import { UserStatus } from "@prisma/client";
+import * as bcrypt from "bcrypt";
+import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
 import config from "../../../config";
-import { jwtHelpers } from "../../../helpars/jwtHelpers";
-import prisma from "../../../shared/prisma";
-import * as bcrypt from "bcrypt";
 import ApiError from "../../../errors/ApiErrors";
+import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import emailSender from "../../../shared/emailSender";
-import { UserStatus } from "@prisma/client";
-import httpStatus from "http-status";
-import crypto from 'crypto';
+import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 
 // user login
@@ -38,7 +37,7 @@ const loginUser = async (payload: { email: string; password: string }) => {
       id: userData.id,
       email: userData.email,
       role: userData.role,
-      fullName: userData.fullName
+      fullName: userData.fullName,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
@@ -167,8 +166,6 @@ const forgotPassword = async (payload: { email: string }) => {
   return { message: "Reset password OTP sent to your email successfully" };
 };
 
-
-
 const resendOtp = async (email: string) => {
   // Check if the user exists
   const user = await prisma.user.findUnique({
@@ -239,9 +236,8 @@ const verifyForgotPasswordOtp = async (payload: {
   });
 
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'This user is not found!');
+    throw new ApiError(httpStatus.NOT_FOUND, "This user is not found!");
   }
-
 
   // Check if the OTP is valid and not expired
   if (
@@ -249,7 +245,7 @@ const verifyForgotPasswordOtp = async (payload: {
     !user.expirationOtp ||
     user.expirationOtp < new Date()
   ) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid OTP');
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid OTP");
   }
 
   // Update the user's OTP, OTP expiration, and verification status
@@ -261,9 +257,8 @@ const verifyForgotPasswordOtp = async (payload: {
     },
   });
 
-  return { message: 'OTP verification successful' };
+  return { message: "OTP verification successful" };
 };
-
 
 // reset password
 const resetPassword = async (payload: { password: string; email: string }) => {
@@ -285,11 +280,11 @@ const resetPassword = async (payload: { password: string; email: string }) => {
     data: {
       password: hashedPassword,
       otp: null,
-      expirationOtp: null, 
+      expirationOtp: null,
     },
   });
 
-  return { message: 'Password reset successfully' };
+  return { message: "Password reset successfully" };
 };
 
 // verify email
@@ -299,12 +294,12 @@ const verifyEmail = async (email: string, verificationCode: number) => {
     where: { email: email },
   });
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'This user is not found!');
+    throw new ApiError(httpStatus.NOT_FOUND, "This user is not found!");
   }
 
   // Check if the verification code is valid
   if (user.otp !== verificationCode) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid verification code');
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid verification code");
   }
 
   // Update the user's status to verified
@@ -312,10 +307,10 @@ const verifyEmail = async (email: string, verificationCode: number) => {
     where: { email: email },
     data: { isVerified: true },
   });
-  return { message: 'Email verified successfully' };
-}
+  return { message: "Email verified successfully" };
+};
 
-export const AuthServices = {
+export const authServices = {
   loginUser,
   getMyProfile,
   changePassword,
