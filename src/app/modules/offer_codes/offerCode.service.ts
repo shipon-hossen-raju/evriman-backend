@@ -1,7 +1,6 @@
-
 import { OfferCode } from "@prisma/client";
-import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
+import prisma from "../../../shared/prisma";
 
 type CreateOfferCodeInput = Omit<
   OfferCode,
@@ -9,8 +8,8 @@ type CreateOfferCodeInput = Omit<
 > & {
   applicablePlans: string[];
   pricingOptionsLevelId?: string[];
+  targetUsers?: string[];
 };
-
 
 const createOfferCode = async (payload: CreateOfferCodeInput) => {
   console.log(" service -> ", payload);
@@ -18,8 +17,8 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
   const findOfferCode = await prisma.offerCode.findFirst({
     where: {
       code: payload.code,
-    }
-  })
+    },
+  });
 
   if (findOfferCode) {
     throw new ApiError(400, "Offer code already exists");
@@ -39,10 +38,34 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
             pricingOptionId,
           })) || [],
       },
+      targetUsers: {
+        create: payload.targetUsers?.map((userId) => ({
+          userId,
+        })) || [],
+      },
     },
     include: {
-      applicablePlans: true,
-      pricingOptionsLevelId: true,
+      applicablePlans: {
+        include: {
+          subscriptionPlan: true,
+        },
+      },
+      pricingOptionsLevelId: {
+        include: {
+          pricingOption: true,
+        },
+      },
+      targetUsers: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -51,10 +74,32 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
 
 // get All Offer Codes
 const getAllOfferCodes = async () => {
+
   const offerCodes = await prisma.offerCode.findMany({
     include: {
-      applicablePlans: true,
-      pricingOptionsLevelId: true,
+      applicablePlans: {
+        include: {
+          subscriptionPlan: true,
+        },
+      },
+
+      pricingOptionsLevelId: {
+        include: {
+          pricingOption: true,
+        },
+      },
+
+      targetUsers: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -68,8 +113,27 @@ const getOfferCodeById = async (id: string) => {
       id,
     },
     include: {
-      applicablePlans: true,
-      pricingOptionsLevelId: true,
+      applicablePlans: {
+        include: {
+          subscriptionPlan: true,
+        },
+      },
+      pricingOptionsLevelId: {
+        include: {
+          pricingOption: true,
+        },
+      },
+      targetUsers: {
+        select: {
+          user: {
+            select: {
+              id: true, 
+              fullName: true,
+              email: true,
+            }
+          }
+        }
+      }
     },
   });
 
@@ -80,10 +144,99 @@ const getOfferCodeById = async (id: string) => {
   return offerCode;
 };
 
+// update offer code
+const updateOfferCode = async (id: string, payload: CreateOfferCodeInput) => {
+  console.log("Updating offer code ->", id, payload);
+
+  const existingOfferCode = await prisma.offerCode.findUnique({
+    where: { id },
+    include: {
+      applicablePlans: true,
+      pricingOptionsLevelId: true,
+      targetUsers: true,
+    },
+  });
+
+  if (!existingOfferCode) {
+    throw new ApiError(404, "Offer code not found");
+  }
+
+  // Optional: prevent duplicate code update
+  if (payload.code && payload.code !== existingOfferCode.code) {
+    const duplicate = await prisma.offerCode.findFirst({
+      where: { code: payload.code },
+    });
+    if (duplicate) {
+      throw new ApiError(400, "Offer code already exists");
+    }
+  }
+
+  // Clear old relations
+  await prisma.offerCode.update({
+    where: { id },
+    data: {
+      applicablePlans: { deleteMany: {} },
+      pricingOptionsLevelId: { deleteMany: {} },
+      targetUsers: { deleteMany: {} },
+    },
+  });
+
+  // Update offer code with new data
+  const updatedOfferCode = await prisma.offerCode.update({
+    where: { id },
+    data: {
+      ...payload,
+      applicablePlans: {
+        create: payload.applicablePlans.map((planId) => ({
+          subscriptionPlanId: planId,
+        })),
+      },
+      pricingOptionsLevelId: {
+        create:
+          payload.pricingOptionsLevelId?.map((pricingOptionId) => ({
+            pricingOptionId,
+          })) || [],
+      },
+      targetUsers: {
+        create:
+          payload.targetUsers?.map((userId) => ({
+            userId,
+          })) || [],
+      },
+    },
+    include: {
+      applicablePlans: {
+        include: {
+          subscriptionPlan: true,
+        },
+      },
+      pricingOptionsLevelId: {
+        include: {
+          pricingOption: true,
+        },
+      },
+      targetUsers: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return updatedOfferCode;
+};
+
 const offerCodeService = {
   createOfferCode,
   getAllOfferCodes,
-  getOfferCodeById
+  getOfferCodeById,
+  updateOfferCode,
 };
 
 export default offerCodeService;
