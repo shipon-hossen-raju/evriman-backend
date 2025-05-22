@@ -75,6 +75,9 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
 const getAllOfferCodes = async () => {
 
   const offerCodes = await prisma.offerCode.findMany({
+    where: {
+      isActive: true,
+    },
     include: {
       applicablePlans: {
         include: {
