@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +7,10 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
+// =======================================================
+// ===================== Global Schema Start =============
+// =======================================================
 
 // ====================== User ======================
 enum LoginType {
@@ -57,10 +60,29 @@ model User {
   isVerified      Boolean    @default(false)
   isDeceased      Boolean    @default(false)
 
-  offerCodes      UserOfferCode[]
+  offerCodes            UserOfferCode[]
+  UserDynamicFieldValue UserDynamicFieldValue[]
 
   @@map("users")
 }
+
+// =======================================================
+// ===================== Global Schema End ===============
+// =======================================================
+
+// =======================================================
+// ===================== User Start ======================
+// =======================================================
+
+// ================ User Profile ================
+
+// =======================================================
+// ===================== User End =======================
+// =======================================================
+
+// =======================================================
+// ===================== Admin Start =====================
+// =======================================================
 
 // ================ Subscription ================
 
@@ -126,14 +148,14 @@ model OfferCode {
   discountType  DiscountType
   discountValue Float
 
-  userType     UserType
-  targetUsers  UserOfferCode[]
+  userType    UserType
+  targetUsers UserOfferCode[]
 
   expiresAt DateTime?
 
   applicablePlans       OfferCodeSubscriptionPlan[]
   pricingOptionsLevelId OfferCodePricingOption[]
-  optionLevelId          LevelId
+  optionLevelId         LevelId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -148,6 +170,8 @@ model OfferCodeSubscriptionPlan {
   offerCodeId        String           @db.ObjectId
   subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
   subscriptionPlanId String           @db.ObjectId
+
+  @@map("offer_code_subscription_plan")
 }
 
 model OfferCodePricingOption {
@@ -157,7 +181,10 @@ model OfferCodePricingOption {
   offerCodeId String    @db.ObjectId
 
   pricingOption   PricingOption @relation("OfferCodesForPricingOption", fields: [pricingOptionId], references: [id])
-pricingOptionId String        @db.ObjectId
+  pricingOptionId String        @db.ObjectId
+
+  @@unique([offerCodeId, pricingOptionId])
+  @@map("offer_code_pricing_option")
 }
 
 model UserOfferCode {
@@ -166,4 +193,51 @@ model UserOfferCode {
   userId      String    @db.ObjectId
   offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
   offerCodeId String    @db.ObjectId
+
+  @@map("user_offer_codes")
 }
+
+// ===================== Tag Management ====================
+
+enum DynamicFieldStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum DynamicFieldCategory {
+  POST_TAGS
+  CORE_TAGS
+  KEY_INFORMATION_SECTIONS
+}
+
+model DynamicField {
+  id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
+  label                 String
+  fieldName             String                  @unique
+  type                  String // text, date, select, etc.
+  options               String[] // if type == select, will be an array; otherwise can be null
+  status                DynamicFieldStatus
+  category              DynamicFieldCategory
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  @@unique([fieldName, category])
+  @@map("dynamic_field")
+}
+
+model UserDynamicFieldValue {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String       @db.ObjectId
+  dynamicFieldId String       @db.ObjectId
+  fieldName      String
+  value          String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("dynamic_field_value")
+}
+
+// =======================================================
+// ===================== Admin End =====================
+// =======================================================

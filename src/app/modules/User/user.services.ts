@@ -68,6 +68,8 @@ const createUserIntoDb = async (payload: User) => {
     updatedAt: new Date(),
   };
 
+  const env = config.env === "development" ? true : false;
+
   const result = await prisma.user.create({
     data: userData,
     select: {
@@ -78,6 +80,7 @@ const createUserIntoDb = async (payload: User) => {
       fullName: true,
       createdAt: true,
       updatedAt: true,
+      otp: env,
     },
   });
   const token = jwtHelpers.generateToken(

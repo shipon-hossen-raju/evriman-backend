@@ -1,5 +1,6 @@
 import express from "express";
 import { authRoutes } from "../modules/auth/auth.routes";
+import dynamicFieldRoute from "../modules/dynamicField/dynamicField.rotue";
 import offerCodeRoutes from "../modules/offer_codes/offerCode.route";
 import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.route";
 import { userRoutes } from "../modules/user/user.route";
@@ -22,6 +23,10 @@ const moduleRoutes = [
   {
     path: "/offer-codes",
     route: offerCodeRoutes,
+  },
+  {
+    path: "/dynamic-fields",
+    route: dynamicFieldRoute,
   },
 ];
 
