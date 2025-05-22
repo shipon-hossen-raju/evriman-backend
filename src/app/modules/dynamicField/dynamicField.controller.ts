@@ -6,8 +6,6 @@ import { querySchema } from "./dynamicField.validation";
 
 // create a dynamic field
 const createDynamicField = catchAsync(async (req, res) => {
-  console.log("controller -> ", req.body);
-
   const result = await dynamicFieldService.createDynamicField(req.body);
 
   sendResponse(res, {
@@ -19,25 +17,8 @@ const createDynamicField = catchAsync(async (req, res) => {
 });
 
 // get all dynamic fields
-// const getAllDynamicFields = catchAsync(async (req, res) => {
-//    const result = await dynamicFieldService.getAllDynamicFields();
-
-//    sendResponse(res, {
-//       statusCode: 200,
-//       success: true,
-//       message: "Dynamic fields retrieved successfully",
-//       data: result,
-//    })
-// });
-
-export const getAllDynamicFields = catchAsync(async (req, res) => {
-  const parsed = querySchema.safeParse(req.query);
-  if (!parsed.success) {
-    throw new ApiError(400, "Invalid query parameters");
-  }
-
-  const { category } = parsed.data;
-  const fields = await dynamicFieldService.getAllDynamicFields(category);
+const getAllDynamicFields = catchAsync(async (req, res) => {
+  const fields = await dynamicFieldService.getAllDynamicFields();
 
   sendResponse(res, {
     statusCode: 200,

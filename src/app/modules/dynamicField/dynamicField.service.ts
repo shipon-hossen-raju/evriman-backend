@@ -5,8 +5,6 @@ import toSnakeCase from "../../../utils/toSnakeCase";
 
 // create a dynamic field
 const createDynamicField = async (payload: DynamicField) => {
-  console.log("payload -> ", payload);
-
   // generate a field name from the label
   const fieldName = toSnakeCase(payload.label);
 
@@ -72,35 +70,29 @@ const updateDynamicField = async (id: string, payload: DynamicField) => {
 };
 
 // get all dynamic fields
-// const getAllDynamicFields = async () => {
-//   const dynamicFields = await prisma.dynamicField.findMany();
-
-//   if (!dynamicFields) {
-//     throw new ApiError(404, "No dynamic fields found");
-//   }
-
-//   return dynamicFields;
-// };
-
-export const getAllDynamicFields = async (category?: string) => {
-  const whereCondition = category
-    ? {
-        category: category as any, // You can cast to enum if using strict enums
-      }
-    : {};
-
-  const dynamicFields = await prisma.dynamicField.findMany({
-    where: whereCondition,
+const getAllDynamicFields = async () => {
+  const allFields = await prisma.dynamicField.findMany({
+    where: {
+      status: "PUBLISHED",
+    },
     orderBy: {
       createdAt: "desc",
     },
   });
 
-  if (!dynamicFields || dynamicFields.length === 0) {
-    throw new ApiError(404, "No dynamic fields found");
-  }
+  // Group by category
+  const groupedByCategory = allFields.reduce<Record<string, DynamicField[]>>(
+    (acc, field) => {
+      if (!acc[field.category]) {
+        acc[field.category] = [];
+      }
+      acc[field.category].push(field);
+      return acc;
+    },
+    {}
+  );
 
-  return dynamicFields;
+  return groupedByCategory;
 };
 
 // get a dynamic field by ID

@@ -12,7 +12,6 @@ type CreateOfferCodeInput = Omit<
 };
 
 const createOfferCode = async (payload: CreateOfferCodeInput) => {
-  console.log(" service -> ", payload);
 
   const findOfferCode = await prisma.offerCode.findFirst({
     where: {
@@ -146,7 +145,6 @@ const getOfferCodeById = async (id: string) => {
 
 // update offer code
 const updateOfferCode = async (id: string, payload: CreateOfferCodeInput) => {
-  console.log("Updating offer code ->", id, payload);
 
   const existingOfferCode = await prisma.offerCode.findUnique({
     where: { id },
