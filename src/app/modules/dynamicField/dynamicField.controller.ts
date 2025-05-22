@@ -2,7 +2,7 @@ import catchAsync from "../../../shared/catchAsync"
 import sendResponse from "../../../shared/sendResponse";
 import dynamicFieldService from "./dynamicField.service";
 
-
+// create a dynamic field
 const createDynamicField = catchAsync(async (req, res) => {
    console.log("controller -> ", req.body);
 
@@ -16,8 +16,64 @@ const createDynamicField = catchAsync(async (req, res) => {
    })
 })
 
+// get all dynamic fields
+const getAllDynamicFields = catchAsync(async (req, res) => {
+   const result = await dynamicFieldService.getAllDynamicFields();
+
+   sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Dynamic fields retrieved successfully",
+      data: result,
+   })
+});
+
+// get a dynamic field by ID
+const getDynamicFieldById = catchAsync(async (req, res) => {
+   const { id } = req.params;
+   const result = await dynamicFieldService.getDynamicFieldById(id);
+
+   sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Dynamic field retrieved successfully",
+      data: result,
+   })
+});
+
+// update a dynamic field
+const updateDynamicField = catchAsync(async (req, res) => {
+   const { id } = req.params;
+   const result = await dynamicFieldService.updateDynamicField(id, req.body);
+
+   sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Dynamic field updated successfully",
+      data: result,
+   })
+});
+
+// delete a dynamic field
+const deleteDynamicField = catchAsync(async (req, res) => {
+   const { id } = req.params;
+   const result = await dynamicFieldService.deleteDynamicField(id);
+
+   sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Dynamic field deleted successfully",
+      data: result,
+   })
+});
+
+
 const dynamicFieldController = {
-   createDynamicField
+   createDynamicField,
+   getAllDynamicFields,
+   getDynamicFieldById,
+   updateDynamicField,
+   deleteDynamicField,
 }
 
 export default dynamicFieldController

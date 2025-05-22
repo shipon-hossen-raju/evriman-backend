@@ -5,10 +5,14 @@
  */
 
 
-function toSnakeCase(input: string): string {
-  return input
+function toSnakeCase(input: string) {
+  const output = input
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "_")
     .replace(/[^\w_]/g, "");
+   
+  return output;
 }
+
+export default toSnakeCase;

@@ -13,4 +13,29 @@ dynamicFieldRoute.post(
   dynamicFieldController.createDynamicField
 );
 
+// Route to get all dynamic fields
+dynamicFieldRoute.get(
+  "/all",
+  dynamicFieldController.getAllDynamicFields
+);
+
+// Route to get a dynamic field by ID
+dynamicFieldRoute.get(
+   "/:id",
+   dynamicFieldController.getDynamicFieldById
+);
+   
+// Route to update a dynamic field
+dynamicFieldRoute.patch(
+  "/:id",
+  validateRequest(dynamicFieldSchema),
+  dynamicFieldController.updateDynamicField
+);
+
+// Route to delete a dynamic field
+dynamicFieldRoute.delete(
+  "/:id",
+  dynamicFieldController.deleteDynamicField
+);
+
 export default dynamicFieldRoute;

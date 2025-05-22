@@ -213,7 +213,7 @@ enum DynamicFieldCategory {
 model DynamicField {
   id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
   label                 String
-  fieldName             String                  @unique
+  fieldName             String                  
   type                  String // text, date, select, etc.
   options               String[] // if type == select, will be an array; otherwise can be null
   status                DynamicFieldStatus
