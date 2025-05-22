@@ -72,10 +72,31 @@ const updateDynamicField = async (id: string, payload: DynamicField) => {
 };
 
 // get all dynamic fields
-const getAllDynamicFields = async () => {
-  const dynamicFields = await prisma.dynamicField.findMany();
+// const getAllDynamicFields = async () => {
+//   const dynamicFields = await prisma.dynamicField.findMany();
 
-  if (!dynamicFields) {
+//   if (!dynamicFields) {
+//     throw new ApiError(404, "No dynamic fields found");
+//   }
+
+//   return dynamicFields;
+// };
+
+export const getAllDynamicFields = async (category?: string) => {
+  const whereCondition = category
+    ? {
+        category: category as any, // You can cast to enum if using strict enums
+      }
+    : {};
+
+  const dynamicFields = await prisma.dynamicField.findMany({
+    where: whereCondition,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  if (!dynamicFields || dynamicFields.length === 0) {
     throw new ApiError(404, "No dynamic fields found");
   }
 

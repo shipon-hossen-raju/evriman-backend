@@ -9,3 +9,9 @@ export const dynamicFieldSchema = z.object({
   status: z.nativeEnum(DynamicFieldStatus),
   category: z.nativeEnum(DynamicFieldCategory),
 });
+
+export const querySchema = z.object({
+  category: z
+    .enum(["POST_TAGS", "CORE_TAGS", "KEY_INFORMATION_SECTIONS"])
+    .optional(),
+});
