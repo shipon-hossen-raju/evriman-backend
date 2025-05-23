@@ -50,11 +50,31 @@ const getSingleOfferCode = catchAsync(async (req, res) => {
 });
 
 // update offer code
+const updateOfferCode = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const offerCode = await offerCodeService.updateOfferCode(id, req.body);
+  if (!offerCode) {
+    return sendResponse(res, {
+      statusCode: 404,
+      success: false,
+      message: "Offer code not found",
+      data: null,
+    });
+  }
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Offer code updated successfully",
+    data: offerCode,
+  });
+}
+);
 
 const offerCodeController = {
   createOfferCode,
   getAllOfferCodes,
   getSingleOfferCode,
+  updateOfferCode,
 };
 
 export default offerCodeController;

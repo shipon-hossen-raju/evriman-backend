@@ -19,6 +19,19 @@ router.get(
   offerCodeController.getAllOfferCodes
 );
 
+// Route to get a single offer code by ID
+router.get(
+  "/:id",
+  offerCodeController.getSingleOfferCode
+);
+
+// Route to update an offer code by ID
+router.patch(
+  "/:id",
+  validateRequest(offerCodeSchema),
+  offerCodeController.updateOfferCode
+);
+
 const offerCodeRoutes = router;
 
 export default offerCodeRoutes;
