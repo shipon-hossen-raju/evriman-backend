@@ -72,6 +72,29 @@ const updateDynamicField = async (id: string, payload: DynamicField) => {
 // get all dynamic fields
 const getAllDynamicFields = async () => {
   const allFields = await prisma.dynamicField.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // Group by category
+  const groupedByCategory = allFields.reduce<Record<string, DynamicField[]>>(
+    (acc, field) => {
+      if (!acc[field.category]) {
+        acc[field.category] = [];
+      }
+      acc[field.category].push(field);
+      return acc;
+    },
+    {}
+  );
+
+  return groupedByCategory;
+};
+
+// get all dynamic fields
+const getAllDynamicFieldsPublish = async () => {
+  const allFields = await prisma.dynamicField.findMany({
     where: {
       status: "PUBLISHED",
     },
@@ -134,6 +157,7 @@ const dynamicFieldService = {
   getDynamicFieldById,
   updateDynamicField,
   deleteDynamicField,
+  getAllDynamicFieldsPublish,
 };
 
 export default dynamicFieldService;

@@ -19,6 +19,12 @@ dynamicFieldRoute.get(
   dynamicFieldController.getAllDynamicFields
 );
 
+// Route to get all dynamic fields
+dynamicFieldRoute.get(
+  "/",
+  dynamicFieldController.getAllDynamicFieldsPublish
+);
+
 // Route to get a dynamic field by ID
 dynamicFieldRoute.get(
    "/:id",

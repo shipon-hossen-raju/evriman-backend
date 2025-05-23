@@ -28,6 +28,18 @@ const getAllDynamicFields = catchAsync(async (req, res) => {
   });
 });
 
+// get all dynamic fields
+const getAllDynamicFieldsPublish = catchAsync(async (req, res) => {
+  const fields = await dynamicFieldService.getAllDynamicFieldsPublish();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Dynamic fields retrieved successfully",
+    data: fields,
+  });
+});
+
 // get a dynamic field by ID
 const getDynamicFieldById = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -73,6 +85,7 @@ const dynamicFieldController = {
   getDynamicFieldById,
   updateDynamicField,
   deleteDynamicField,
+  getAllDynamicFieldsPublish,
 };
 
 export default dynamicFieldController;
