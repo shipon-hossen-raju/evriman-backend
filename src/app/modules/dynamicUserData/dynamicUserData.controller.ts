@@ -10,7 +10,7 @@ const createDynamicUserData = catchAsync(async (req, res) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: 201,
     success: true,
     message: "Dynamic User Data created successfully",
     data: newDynamicUserData,

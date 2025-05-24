@@ -30,22 +30,27 @@ export const parseBodyFileUploader = catchAsync(
       throw new ApiError(404, "User not found!");
     }
 
-    const file = req.file;
-    if (!file) {
+    console.log("findUser ", findUser);
+
+    const files = req.files;
+    console.log("file ", files);
+    if (!files) {
       throw new ApiError(400, "File is required");
     }
 
-    const image = await fileUploader.uploadToDigitalOcean(file);
-    const photoUrl = image?.Location;
+    // const image = await fileUploader.uploadToDigitalOcean(file);
+    // const photoUrl = image?.Location;
 
     const userData = {
       ...bodyData,
       userId,
-      photoUrl,
+      // photoUrl,
     };
 
     req.body = userData;
 
-    next();
+    console.log("req.body ", req.body);
+
+    // next();
   }
 );

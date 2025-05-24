@@ -1,5 +1,7 @@
+import { UserRole } from "@prisma/client";
 import express from "express";
 import { fileUploader } from "../../../helpars/fileUploader";
+import auth from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import contactListController from "./contactList.controller";
 import { parseBodyFileUploader } from "./contactList.fileUploader";
@@ -10,6 +12,7 @@ const contactListRouter = express.Router();
 // create contact list
 contactListRouter.post(
   "/create",
+  auth(UserRole.USER, UserRole.PARTNER),
   fileUploader.uploadSingle,
   parseBodyFileUploader,
   validateRequest(contactListSchema),
@@ -22,13 +25,25 @@ contactListRouter.get("/", contactListController.getAllContactList);
 // find contact list by userId
 contactListRouter.get(
   "/user/:userId",
+  auth(UserRole.USER, UserRole.PARTNER),
   contactListController.contactListFindByUserId
 );
 
 // contact list update
-contactListRouter.get("/:id", contactListController.updateContactList);
+contactListRouter.get(
+  "/:id",
+  auth(UserRole.USER, UserRole.PARTNER),
+  fileUploader.uploadSingle,
+  parseBodyFileUploader,
+  validateRequest(contactListSchema),
+  contactListController.updateContactList
+);
 
 // delete contact list
-contactListRouter.delete("/:id", contactListController.deleteContactList);
+contactListRouter.delete(
+  "/:id",
+  auth(UserRole.USER, UserRole.PARTNER),
+  contactListController.deleteContactList
+);
 
 export default contactListRouter;
