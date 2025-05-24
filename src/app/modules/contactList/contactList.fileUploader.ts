@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import { fileUploader } from "../../../helpars/fileUploader";
 import catchAsync from "../../../shared/catchAsync";
@@ -6,17 +7,22 @@ import prisma from "../../../shared/prisma";
 
 export const parseBodyFileUploader = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized!");
+    }
 
     if (!req.body.data) {
       throw new ApiError(400, "Please provide data in the body under data key");
     }
+
+    const userId = req.user?.id;
 
     const bodyData = JSON.parse(req.body.data);
 
     // find user
     const findUser = await prisma.user.findUnique({
       where: {
-        id: bodyData.userId,
+        id: userId,
       },
     });
 
@@ -34,14 +40,11 @@ export const parseBodyFileUploader = catchAsync(
 
     const userData = {
       ...bodyData,
+      userId,
       photoUrl,
     };
 
-    console.log("userData ", userData);
-
     req.body = userData;
-
-    console.log("req.body ", req.body);
 
     next();
   }
