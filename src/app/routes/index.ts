@@ -5,6 +5,7 @@ import offerCodeRoutes from "../modules/offer_codes/offerCode.route";
 import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.route";
 import { userRoutes } from "../modules/user/user.route";
 import dynamicUserDataRoute from "../modules/dynamicUserData/dynamicUserData.route";
+import contactListRouter from "../modules/contactList/contactList.route";
 
 const router = express.Router();
 
@@ -32,6 +33,10 @@ const moduleRoutes = [
   {
     path: "/dynamic-user-data",
     route: dynamicUserDataRoute,
+  },
+  {
+    path: "/contact-list",
+    route: contactListRouter,
   },
 ];
 

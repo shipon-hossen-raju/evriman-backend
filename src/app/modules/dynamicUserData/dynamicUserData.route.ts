@@ -1,15 +1,18 @@
+import { UserRole } from "@prisma/client";
 import express from "express";
-import dynamicUserDataController from "./dynamicUserData.controller";
-import validateRequest from "../../middlewares/validateRequest";
-import { userDynamicFieldValueSchema } from "./dynamicUserData.validation";
-import { parseBodyFileUploader } from "./dynamicUserData.FileUploader";
 import { fileUploader } from "../../../helpars/fileUploader";
+import auth from "../../middlewares/auth";
+import validateRequest from "../../middlewares/validateRequest";
+import dynamicUserDataController from "./dynamicUserData.controller";
+import { parseBodyFileUploader } from "./dynamicUserData.FileUploader";
+import { userDynamicFieldValueSchema } from "./dynamicUserData.validation";
 
 const dynamicUserDataRoute = express.Router();
 
 // create dynamic user data
 dynamicUserDataRoute.post(
   "/create",
+  auth(UserRole.USER, UserRole.PARTNER),
   fileUploader.uploadFile,
   parseBodyFileUploader,
   validateRequest(userDynamicFieldValueSchema),
@@ -19,6 +22,7 @@ dynamicUserDataRoute.post(
 // update dynamic user data
 dynamicUserDataRoute.patch(
   "/:id",
+  auth(UserRole.USER, UserRole.PARTNER),
   fileUploader.uploadFile,
   parseBodyFileUploader,
   validateRequest(userDynamicFieldValueSchema),
@@ -27,13 +31,14 @@ dynamicUserDataRoute.patch(
 
 // get all dynamic user data
 dynamicUserDataRoute.get(
-   "/all",
-   dynamicUserDataController.getAllDynamicUserData
+  "/all",
+  dynamicUserDataController.getAllDynamicUserData
 );
 
 // get dynamic user data by userId
 dynamicUserDataRoute.get(
   "/user/:userId",
+  auth(UserRole.USER, UserRole.PARTNER),
   dynamicUserDataController.getDynamicUserDataByUserId
 );
 
@@ -45,8 +50,9 @@ dynamicUserDataRoute.get(
 
 // delete dynamic user data
 dynamicUserDataRoute.delete(
-   "/:id",
-   dynamicUserDataController.deleteDynamicUserData
+  "/:id",
+  auth(UserRole.USER),
+  dynamicUserDataController.deleteDynamicUserData
 );
 
 export default dynamicUserDataRoute;
