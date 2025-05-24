@@ -52,11 +52,25 @@ const updateContactList = catchAsync(async (req, res) => {
   });
 });
 
+// contact list update
+const deleteContactList = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await contactListService.deleteContactList(id);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Contact list deleted successfully",
+    data: result,
+  });
+})
+
 const contactListController = {
   contactListCreate,
   contactListFindByUserId,
   getAllContactList,
   updateContactList,
+  deleteContactList,
 };
 
 export default contactListController;

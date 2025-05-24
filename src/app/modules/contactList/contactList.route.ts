@@ -26,9 +26,9 @@ contactListRouter.get(
 );
 
 // contact list update
-contactListRouter.get(
-  "/:id",
-  contactListController.updateContactList
-);
+contactListRouter.get("/:id", contactListController.updateContactList);
+
+// delete contact list
+contactListRouter.delete("/:id", contactListController.deleteContactList);
 
 export default contactListRouter;

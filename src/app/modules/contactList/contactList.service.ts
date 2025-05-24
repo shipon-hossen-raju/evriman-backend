@@ -73,11 +73,21 @@ const getAllContactList = async () => {
   return contactLists;
 };
 
+// delete contact list 
+const deleteContactList = async (id: string) => { 
+  const result = await prisma.contactList.delete({
+    where: { id }
+  });
+
+  return result
+}
+
 const contactListService = {
   contactListCreate,
   contactListUpdate,
   getContactListsByUserId,
   getAllContactList,
+  deleteContactList,
 };
 
 export default contactListService;
