@@ -34,12 +34,10 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
 
 // get user profile
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const userToken = req.headers.authorization;
-
-  const result = await authServices.getMyProfile(userToken as string);
+  const result = await authServices.getMyProfile(req.user?.id);
   sendResponse(res, {
     success: true,
-    statusCode: 201,
+    statusCode: 200,
     message: "User profile retrieved successfully",
     data: result,
   });

@@ -63,6 +63,7 @@ model User {
   offerCodes            UserOfferCode[]
   UserDynamicFieldValue UserDynamicFieldValue[]
   ContactList           ContactList[]
+  memories              UserMemory[]            @relation("UserMemories")
 
   @@map("users")
 }
@@ -75,21 +76,19 @@ model User {
 // ===================== User Start ======================
 // =======================================================
 
-// ================ User Profile ================
-
 // =============== Contact List ===================
 model ContactList {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   user         User     @relation(fields: [userId], references: [id])
   userId       String   @db.ObjectId
   name         String
-  email        String? 
-  phoneNumber  String? 
-  photoUrl     String? 
+  email        String?
+  phoneNumber  String?
+  photoUrl     String?
   dateOfBirth  DateTime
   relationship String
   isOver18     Boolean
-  note         String? 
+  note         String?
   createdAt    DateTime @default(now())
 
   // Guardian Details (only for under 18)
@@ -99,6 +98,21 @@ model ContactList {
   guardianPhoneNumber String?
 
   @@map("contact_list")
+}
+
+// memory model
+model UserMemory {
+  id     String          @id @default(auto()) @map("_id") @db.ObjectId
+  text   String
+  files  String[] // List of media file URLs (images, audio, video)
+  tags   UserMemoryTag[]
+  userId String          @db.ObjectId
+  user   User            @relation("UserMemories", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_memory")
 }
 
 // =======================================================
@@ -189,39 +203,6 @@ model OfferCode {
   @@map("offer_codes")
 }
 
-model OfferCodeSubscriptionPlan {
-  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
-  offerCode          OfferCode        @relation(fields: [offerCodeId], references: [id])
-  offerCodeId        String           @db.ObjectId
-  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
-  subscriptionPlanId String           @db.ObjectId
-
-  @@map("offer_code_subscription_plan")
-}
-
-model OfferCodePricingOption {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
-  offerCodeId String    @db.ObjectId
-
-  pricingOption   PricingOption @relation("OfferCodesForPricingOption", fields: [pricingOptionId], references: [id])
-  pricingOptionId String        @db.ObjectId
-
-  @@unique([offerCodeId, pricingOptionId])
-  @@map("offer_code_pricing_option")
-}
-
-model UserOfferCode {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String    @db.ObjectId
-  offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
-  offerCodeId String    @db.ObjectId
-
-  @@map("user_offer_codes")
-}
-
 // ===================== Tag Management ====================
 
 enum DynamicFieldStatus {
@@ -230,7 +211,6 @@ enum DynamicFieldStatus {
 }
 
 enum DynamicFieldCategory {
-  POST_TAGS
   CORE_TAGS
   KEY_INFORMATION_SECTIONS
 }
@@ -241,6 +221,7 @@ enum DynamicFieldType {
   FILE
 }
 
+// dynamic field
 model DynamicField {
   id        String               @id @default(auto()) @map("_id") @db.ObjectId
   label     String
@@ -256,6 +237,7 @@ model DynamicField {
   @@map("dynamic_field")
 }
 
+// User Dynamic field value store
 model UserDynamicFieldValue {
   id        String               @id @default(auto()) @map("_id") @db.ObjectId
   user      User                 @relation(fields: [userId], references: [id])
@@ -270,6 +252,74 @@ model UserDynamicFieldValue {
   @@map("dynamic_field_value")
 }
 
+// post tags
+model Tags {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  route  String  @unique
+  status Boolean @default(true)
+
+  memories UserMemoryTag[]
+
+  @@map("tags")
+}
+
 // =======================================================
 // ===================== Admin End =====================
+// =======================================================
+
+// =======================================================
+// ===================== Many-to-Many Relation Start =====================
+// =======================================================
+
+// Join table for OfferCode & Subscription Plan
+model OfferCodeSubscriptionPlan {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  offerCode          OfferCode        @relation(fields: [offerCodeId], references: [id])
+  offerCodeId        String           @db.ObjectId
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlanId String           @db.ObjectId
+
+  @@map("offer_code_subscription_plan")
+}
+
+// join table for OfferCode and PricingOption
+model OfferCodePricingOption {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
+  offerCodeId String    @db.ObjectId
+
+  pricingOption   PricingOption @relation("OfferCodesForPricingOption", fields: [pricingOptionId], references: [id])
+  pricingOptionId String        @db.ObjectId
+
+  @@unique([offerCodeId, pricingOptionId])
+  @@map("offer_code_pricing_option")
+}
+
+// join table for User and OfferCode
+model UserOfferCode {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @db.ObjectId
+  offerCode   OfferCode @relation(fields: [offerCodeId], references: [id])
+  offerCodeId String    @db.ObjectId
+
+  @@map("user_offer_codes")
+}
+
+// join table for UserMemory and Tags
+model UserMemoryTag {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  userMemory   UserMemory @relation(fields: [userMemoryId], references: [id])
+  userMemoryId String     @db.ObjectId
+  tag          Tags       @relation(fields: [tagId], references: [id])
+  tagId        String     @db.ObjectId
+
+  @@unique([userMemoryId, tagId])
+  @@map("user_memory_tag")
+}
+
+// =======================================================
+// ===================== Many-to-Many Relation End =====================
 // =======================================================

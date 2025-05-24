@@ -47,21 +47,31 @@ const loginUser = async (payload: { email: string; password: string }) => {
 };
 
 // get user profile
-const getMyProfile = async (userToken: string) => {
-  const decodedToken = jwtHelpers.verifyToken(
-    userToken,
-    config.jwt.jwt_secret!
-  );
+const getMyProfile = async (id: string) => {
 
   const userProfile = await prisma.user.findUnique({
     where: {
-      id: decodedToken.id,
+      id: id,
     },
     select: {
       id: true,
       email: true,
       createdAt: true,
       updatedAt: true,
+      ContactList: true,
+      address: true,
+      dob: true,
+      fullName: true,
+      idDocument: true,
+      phoneNumber: true,
+      isDeceased: true,
+      isVerified: true,
+      status: true,
+      UserDynamicFieldValue: true,
+      role: true,
+      loginType: true,
+      offerCodes: true,
+      referralCode: true
     },
   });
 
