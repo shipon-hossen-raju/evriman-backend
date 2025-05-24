@@ -97,6 +97,8 @@ model ContactList {
   guardianEmail       String?
   guardianDob         DateTime?
   guardianPhoneNumber String?
+
+  @@map("contact_list")
 }
 
 // =======================================================

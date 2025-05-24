@@ -16,4 +16,19 @@ contactListRouter.post(
   contactListController.contactListCreate
 );
 
+// find all contact list
+contactListRouter.get("/", contactListController.getAllContactList);
+
+// find contact list by userId
+contactListRouter.get(
+  "/user/:userId",
+  contactListController.contactListFindByUserId
+);
+
+// contact list update
+contactListRouter.get(
+  "/:id",
+  contactListController.updateContactList
+);
+
 export default contactListRouter;
