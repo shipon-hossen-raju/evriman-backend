@@ -50,6 +50,7 @@ const uploadFile = upload.single("file");
 
 // Upload multiple images
 const uploadMultipleImage = upload.fields([{ name: "images", maxCount: 15 }]);
+const uploadMultipleFiles = upload.fields([{ name: "files", maxCount: 15 }]);
 
 // Upload profile and banner images
 const updateProfile = upload.fields([
@@ -127,6 +128,7 @@ export const fileUploader = {
   upload,
   uploadSingle,
   uploadMultipleImage,
+  uploadMultipleFiles,
   updateProfile,
   uploadFile,
   cloudinaryUpload,

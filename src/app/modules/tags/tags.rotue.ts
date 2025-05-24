@@ -15,7 +15,7 @@ tagsRoute.post(
 );
 
 // Route to get all tags
-tagsRoute.get("/all", tagsController.getAllTags);
+tagsRoute.get("/", tagsController.getAllTags);
 
 // Route to get all tags
 // tagsRoute.get("/", tagsController.);

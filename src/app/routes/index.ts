@@ -7,6 +7,7 @@ import { userRoutes } from "../modules/user/user.route";
 import dynamicUserDataRoute from "../modules/dynamicUserData/dynamicUserData.route";
 import contactListRouter from "../modules/contactList/contactList.route";
 import tagsRoute from "../modules/tags/tags.rotue";
+import userMemoryRoute from "../modules/userMemory/userMemory.route";
 
 const router = express.Router();
 
@@ -42,6 +43,10 @@ const moduleRoutes = [
   {
     path: "/tag",
     route: tagsRoute,
+  },
+  {
+    path: "/user-memory",
+    route: userMemoryRoute,
   },
 ];
 
