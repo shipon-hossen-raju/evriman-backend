@@ -3,6 +3,7 @@ import express from 'express';
 import dynamicFieldController from './dynamicField.controller';
 import validateRequest from '../../middlewares/validateRequest';
 import { dynamicFieldSchema } from './dynamicField.validation';
+import auth from '../../middlewares/auth';
 
 const dynamicFieldRoute = express.Router();
 
