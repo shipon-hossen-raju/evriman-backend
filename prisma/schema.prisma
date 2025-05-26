@@ -65,8 +65,35 @@ model User {
   UserDynamicFieldValue UserDynamicFieldValue[]
   ContactList           ContactList[]
   memories              UserMemory[]            @relation("UserMemories")
+  deathVerification     DeathVerification[]
 
   @@map("users")
+}
+
+// Death verification model
+model DeathVerification {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  requesterName  String
+  requesterEmail String
+  requesterPhone String
+
+  deceasedName      String
+  deceasedProfileId String
+  relationship      String
+  deceasedDob       DateTime
+  deathCertificate  String 
+  optionalNote      String?
+
+  status VerificationStatus @default(PENDING)
+
+  user   User?   @relation(fields: [userId], references: [userId])
+  userId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("death_verification")
 }
 
 // =======================================================
@@ -115,8 +142,8 @@ model UserMemory {
   userId     String   @db.ObjectId
   user       User     @relation("UserMemories", fields: [userId], references: [id])
   contactIds String[] @db.ObjectId
-  tagId     String   @db.ObjectId
-  tag       Tags     @relation("TagsToUserMemories", fields: [tagId], references: [id])
+  tagId      String   @db.ObjectId
+  tag        Tags     @relation("TagsToUserMemories", fields: [tagId], references: [id])
 
   contacts UserMemoryContact[]
 

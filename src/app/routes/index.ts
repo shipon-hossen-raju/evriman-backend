@@ -1,12 +1,13 @@
 import express from "express";
 import { authRoutes } from "../modules/auth/auth.routes";
+import contactListRouter from "../modules/contactList/contactList.route";
+import { deathVerificationRoutes } from "../modules/deathVerification/deathVerification.routes";
 import dynamicFieldRoute from "../modules/dynamicField/dynamicField.rotue";
+import dynamicUserDataRoute from "../modules/dynamicUserData/dynamicUserData.route";
 import offerCodeRoutes from "../modules/offer_codes/offerCode.route";
 import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.route";
-import { userRoutes } from "../modules/user/user.route";
-import dynamicUserDataRoute from "../modules/dynamicUserData/dynamicUserData.route";
-import contactListRouter from "../modules/contactList/contactList.route";
 import tagsRoute from "../modules/tags/tags.rotue";
+import { userRoutes } from "../modules/user/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
 
 const router = express.Router();
@@ -47,6 +48,10 @@ const moduleRoutes = [
   {
     path: "/user-memory",
     route: userMemoryRoute,
+  },
+  {
+    path: "/death-verification",
+    route: deathVerificationRoutes,
   },
 ];
 

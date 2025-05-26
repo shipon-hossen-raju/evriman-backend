@@ -48,7 +48,6 @@ const loginUser = async (payload: { email: string; password: string }) => {
 
 // get user profile
 const getMyProfile = async (id: string) => {
-
   const userProfile = await prisma.user.findUnique({
     where: {
       id: id,
@@ -71,7 +70,8 @@ const getMyProfile = async (id: string) => {
       role: true,
       loginType: true,
       offerCodes: true,
-      referralCode: true
+      referralCode: true,
+      memories: true,
     },
   });
 
