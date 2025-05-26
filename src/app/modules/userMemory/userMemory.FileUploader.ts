@@ -3,7 +3,6 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import { fileUploader } from "../../../helpars/fileUploader";
 import catchAsync from "../../../shared/catchAsync";
-import prisma from "../../../shared/prisma";
 
 export const parseBodyFileUploader = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -15,42 +14,41 @@ export const parseBodyFileUploader = catchAsync(
       throw new ApiError(400, "Please provide data in the body under data key");
     }
 
-    const userId = req.user?.id;
+    const userId = req?.user?.id;
 
     const bodyData = JSON.parse(req.body.data);
 
-    // find user
-    const findUser = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+    let files: any[] = [];
 
-    if (!findUser) {
-      throw new ApiError(404, "User not found!");
+    if (Array.isArray(req.files)) {
+      files = req.files;
+    } else if (req.files && typeof req.files === "object") {
+      files = Object.values(req.files).flat();
     }
 
-    console.log("findUser ", findUser);
-
-    const files = req.files;
-    console.log("file ", files);
-    if (!files) {
+    if (!files || files.length === 0) {
       throw new ApiError(400, "File is required");
     }
 
-    // const image = await fileUploader.uploadToDigitalOcean(file);
-    // const photoUrl = image?.Location;
+    const fileUrls = [];
+    for (const file of files) {
+      // process each file here
+      const uploaded = await fileUploader.uploadToDigitalOcean(file);
+      fileUrls.push(uploaded.Location);
+    }
+
+    console.log("fileUrls ", fileUrls);
 
     const userData = {
       ...bodyData,
       userId,
-      // photoUrl,
+      files: [...fileUrls],
     };
 
     req.body = userData;
 
     console.log("req.body ", req.body);
 
-    // next();
+    next();
   }
 );
