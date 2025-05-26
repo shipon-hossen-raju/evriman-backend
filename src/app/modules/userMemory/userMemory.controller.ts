@@ -4,9 +4,7 @@ import userMemoryService from "./userMemory.service";
 
 // create User Memory data
 const createUserMemoryData = catchAsync(async (req, res) => {
-  const newUserMemoryData = await userMemoryService.createUserMemory(
-    req.body
-  );
+  const newUserMemoryData = await userMemoryService.createUserMemory(req.body);
 
   sendResponse(res, {
     statusCode: 201,
@@ -17,80 +15,68 @@ const createUserMemoryData = catchAsync(async (req, res) => {
 });
 
 // update User Memory data
-// const updateDynamicUserData = catchAsync(async (req, res) => {
-//   const { id } = req.params;
-//   const updatedDynamicUserData =
-//     await dynamicUserDataService.updateDynamicUserData(id, req.body);
+const updateUserMemory = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const updatedUserMemory = await userMemoryService.updateUserMemory(
+    id,
+    req.body
+  );
 
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "User Memory Data updated successfully",
-//     data: updatedDynamicUserData,
-//   });
-// });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User Memory Data updated successfully",
+    data: updatedUserMemory,
+  });
+});
 
-// // get all User Memory data
-// const getAllDynamicUserData = catchAsync(async (req, res) => {
-//   const allDynamicUserData =
-//     await dynamicUserDataService.getAllDynamicUserData();
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "All User Memory Data retrieved successfully",
-//     data: allDynamicUserData,
-//   });
-// });
+// get all User Memory data find & search query
+const getAllUserMemoryData = catchAsync(async (req, res) => {
+  const filters = req.query;
+  console.log("filters ", filters);
 
-// // get User Memory data by userId
-// const getDynamicUserDataByUserId = catchAsync(async (req, res) => {
-//   const { userId } = req.params;
+  const userMemoryData = await userMemoryService.getAllUserMemories(filters);
 
-//   const dynamicUserData =
-//     await dynamicUserDataService.getDynamicUserDataByUserId(userId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User Memory Data retrieved successfully",
+    data: userMemoryData,
+  });
+});
 
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "User Memory Data retrieved successfully",
-//     data: dynamicUserData,
-//   });
-// });
+// get User Memory data by userId
+const getUserMemoryById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const userMemoryData = await userMemoryService.getUserMemoryById(id);
 
-// // get User Memory data by id
-// const getDynamicUserDataById = catchAsync(async (req, res) => {
-//   const { id } = req.params;
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User Memory Data retrieved successfully",
+    data: userMemoryData,
+  });
+});
 
-//   const dynamicUserData = await dynamicUserDataService.getDynamicUserDataById(
-//     id
-//   );
+// get User Memory data by id
+const deleteUserMemory = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const deletedUserMemory = await userMemoryService.deleteUserMemory(id);
 
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "User Memory Data retrieved successfully",
-//     data: dynamicUserData,
-//   });
-// });
-
-// // delete User Memory data
-// const deleteDynamicUserData = catchAsync(async (req, res) => {
-//   const { id } = req.params;
-
-//   const deletedDynamicUserData =
-//     await dynamicUserDataService.deleteDynamicUserData(id);
-
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "User Memory Data deleted successfully",
-//     data: deletedDynamicUserData,
-//   });
-// });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User Memory Data deleted successfully",
+    data: deletedUserMemory,
+  });
+});
 
 const userMemoryController = {
   createUserMemoryData,
-
+  updateUserMemory,
+  getAllUserMemoryData,
+  getUserMemoryById,
+  deleteUserMemory,
 };
 
 export default userMemoryController;

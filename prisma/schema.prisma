@@ -38,27 +38,28 @@ enum UserStatus {
 }
 
 model User {
-  id              String     @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String     @unique
-  fullName        String
-  email           String     @unique
-  otp             Int?
-  expirationOtp   DateTime?
-  password        String
-  address         String
-  role            UserRole   @default(USER)
-  status          UserStatus @default(ACTIVE)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  loginType       LoginType  @default(USER)
-  phoneNumber     String
-  dob             DateTime
-  idDocument      String? // URL to uploaded ID document
-  referralCode    String?
-  termsAccepted   Boolean    @default(false)
-  privacyAccepted Boolean    @default(false)
-  isVerified      Boolean    @default(false)
-  isDeceased      Boolean    @default(false)
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String     @unique
+  fullName      String
+  email         String     @unique
+  otp           Int?
+  expirationOtp DateTime?
+  password      String
+  address       String
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  loginType     LoginType  @default(USER)
+  phoneNumber   String
+  dob           DateTime
+  idDocument    String?
+  referralCode  String?
+
+  termsAccepted   Boolean @default(false)
+  privacyAccepted Boolean @default(false)
+  isVerified      Boolean @default(false)
+  isDeceased      Boolean @default(false)
 
   offerCodes            UserOfferCode[]
   UserDynamicFieldValue UserDynamicFieldValue[]
@@ -97,20 +98,32 @@ model ContactList {
   guardianDob         DateTime?
   guardianPhoneNumber String?
 
+  userMemories      UserMemory[]        @relation("ContactListToUserMemories")
+  UserMemoryContact UserMemoryContact[]
+
   @@map("contact_list")
 }
 
 // memory model
 model UserMemory {
-  id     String          @id @default(auto()) @map("_id") @db.ObjectId
-  text   String
-  files  String[] // List of media file URLs (images, audio, video)
-  tags   UserMemoryTag[]
-  userId String          @db.ObjectId
-  user   User            @relation("UserMemories", fields: [userId], references: [id])
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  content String
+  files   String[] // List of media file URLs (images, audio, video)
+  status  Boolean
+
+  userId     String   @db.ObjectId
+  user       User     @relation("UserMemories", fields: [userId], references: [id])
+  contactIds String[] @db.ObjectId
+  tagId     String   @db.ObjectId
+  tag       Tags     @relation("TagsToUserMemories", fields: [tagId], references: [id])
+
+  contacts UserMemoryContact[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  contactListId String?      @db.ObjectId
+  ContactList   ContactList? @relation("ContactListToUserMemories", fields: [contactListId], references: [id])
 
   @@map("user_memory")
 }
@@ -259,7 +272,7 @@ model Tags {
   route  String  @unique
   status Boolean @default(true)
 
-  memories UserMemoryTag[]
+  userMemories UserMemory[] @relation("TagsToUserMemories")
 
   @@map("tags")
 }
@@ -308,16 +321,16 @@ model UserOfferCode {
   @@map("user_offer_codes")
 }
 
-// join table for UserMemory and Tags
-model UserMemoryTag {
-  id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  userMemory   UserMemory @relation(fields: [userMemoryId], references: [id])
-  userMemoryId String     @db.ObjectId
-  tag          Tags       @relation(fields: [tagId], references: [id])
-  tagId        String     @db.ObjectId
+// Join table for UserMemoryContact
+model UserMemoryContact {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  userMemory   UserMemory  @relation(fields: [userMemoryId], references: [id])
+  userMemoryId String      @db.ObjectId
+  contact      ContactList @relation(fields: [contactId], references: [id])
+  contactId    String      @db.ObjectId
 
-  @@unique([userMemoryId, tagId])
-  @@map("user_memory_tag")
+  @@unique([userMemoryId, contactId])
+  @@map("user_memory_contact")
 }
 
 // =======================================================

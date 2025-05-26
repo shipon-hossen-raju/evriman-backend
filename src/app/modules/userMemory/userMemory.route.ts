@@ -8,6 +8,7 @@ import { createUserMemorySchema } from "./userMemory.validation";
 
 const userMemoryRoute = express.Router();
 
+// Get all User Memory data
 userMemoryRoute.post(
   "/create",
   auth(),
@@ -16,5 +17,37 @@ userMemoryRoute.post(
   validateRequest(createUserMemorySchema),
   userMemoryController.createUserMemoryData
 );
+
+// update user memory data 
+userMemoryRoute.patch("/:id",
+  auth(),
+  fileUploader.uploadMultipleFiles,
+  parseBodyFileUploader,
+  validateRequest(createUserMemorySchema),
+  userMemoryController.updateUserMemory
+)
+
+// get all User Memory data find & search query
+userMemoryRoute.get(
+  "/",
+  auth(),
+  userMemoryController.getAllUserMemoryData
+);
+
+// get User Memory data by id
+userMemoryRoute.get(
+  "/:id",
+  auth(),
+  userMemoryController.getUserMemoryById
+);
+
+// delete User Memory data by id
+userMemoryRoute.delete(
+  "/:id",
+  auth(),
+  userMemoryController.deleteUserMemory
+);
+
+
 
 export default userMemoryRoute;
