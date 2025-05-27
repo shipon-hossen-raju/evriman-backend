@@ -24,7 +24,7 @@ router.get("/", userController.getUsers);
 // *!profile user
 router.put(
   "/profile",
-  // validateRequest(UserValidation.userUpdateSchema),
+  // validateRequest(userValidation.userUpdateSchema),
 
   auth(UserRole.ADMIN, UserRole.USER),
   fileUploader.uploadSingle,

@@ -4,7 +4,7 @@ export const contactListSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
 
   name: z.string().min(1, "Name is required"),
-  email: z.string().email().optional(),
+  email: z.string().optional(),
   phoneNumber: z.string(),
   photoUrl: z.string().url("Invalid photo URL").optional(),
 

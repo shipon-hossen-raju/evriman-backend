@@ -11,13 +11,22 @@ export const parseBodyFileUploader = catchAsync(
 
     const bodyData = JSON.parse(req.body.data);
 
+    console.log("bodyData ", bodyData);
+
     const file = req.file;
-    if (!file) {
+    let imageUrl: string = "";
+    if (!file && bodyData.loginType === "User") {
       throw new ApiError(400, "File is required");
+    } else if (file) {
+      const image = await fileUploader.uploadToDigitalOcean(file);
+      imageUrl = image?.Location || "";
+
+      if (!imageUrl) {
+        throw new ApiError(400, "Failed to upload file");
+      }
     }
 
-    const image = await fileUploader.uploadToDigitalOcean(file);
-    const imageUrl = image?.Location;
+   
 
     const userData = {
       ...bodyData,
@@ -25,6 +34,8 @@ export const parseBodyFileUploader = catchAsync(
     };
 
     req.body = userData;
+
+    console.log("Parsed body data: ", req.body);
 
     next();
   }

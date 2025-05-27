@@ -1,4 +1,4 @@
-import { LoginType, UserRole } from "@prisma/client";
+import { LoginType, PartnerType, UserRole } from "@prisma/client";
 import { z } from "zod";
 
 // Helper schemas
@@ -25,21 +25,40 @@ export const CreateUserValidationSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: passwordSchema,
   phoneNumber: phoneSchema,
-  dob: dateSchema.refine(
-    (date) => date <= new Date(),
-    "Date of birth cannot be in the future"
-  ),
+  dob: dateSchema
+    .refine(
+      (date) => date <= new Date(),
+      "Date of birth cannot be in the future"
+    )
+    .optional(),
   role: z.nativeEnum(UserRole).default(UserRole.USER),
   loginType: z.nativeEnum(LoginType).default(LoginType.USER),
-  termsAccepted: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms and conditions" }),
-  }),
-  privacyAccepted: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the privacy policy" }),
-  }),
+  termsAccepted: z
+    .literal(true, {
+      errorMap: () => ({ message: "You must accept the terms and conditions" }),
+    })
+    .optional(),
+  privacyAccepted: z
+    .literal(true, {
+      errorMap: () => ({ message: "You must accept the privacy policy" }),
+    })
+    .optional(),
   referralCode: z.string().optional(),
   address: z.string(),
-  idDocument: z.string().url("ID document is required"),
+  idDocument: z.string().optional(),
+
+  // partner information
+  partnerAgreement: z
+    .literal(true, {
+      errorMap: () => ({ message: "You must accept the partner agreement" }),
+    })
+    .optional(),
+  partnerType: z.nativeEnum(PartnerType).default("MORTGAGE_BROKER").optional(),
+  businessName: z.string().min(2).optional(),
+
+  isNewData: z.literal(true, {
+    errorMap: () => ({ message: "You must be a new user to register" }),
+  }),
 });
 
 // export const UpdateUserValidationSchema = z.object({
