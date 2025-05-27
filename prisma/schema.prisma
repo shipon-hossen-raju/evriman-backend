@@ -37,6 +37,11 @@ enum UserStatus {
   BLOCKED
 }
 
+enum PartnerType {
+  MORTGAGE_BROKER
+  OTHER
+}
+
 model User {
   id            String     @id @default(auto()) @map("_id") @db.ObjectId
   userId        String     @unique
@@ -45,14 +50,14 @@ model User {
   otp           Int?
   expirationOtp DateTime?
   password      String
-  address       String
+  address       String?
   role          UserRole   @default(USER)
   status        UserStatus @default(ACTIVE)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   loginType     LoginType  @default(USER)
   phoneNumber   String
-  dob           DateTime
+  dob           DateTime?
   idDocument    String?
   referralCode  String?
 
@@ -66,7 +71,15 @@ model User {
   ContactList           ContactList[]
   memories              UserMemory[]            @relation("UserMemories")
   deathVerification     DeathVerification[]
-  memoryClaimRequests  MemoryClaimRequest[]
+  memoryClaimRequests   MemoryClaimRequest[]
+
+  // partner information
+  businessName     String?
+  partnerType      PartnerType?
+  partnerAgreement String?
+
+  isPartner Boolean @default(false)
+  isUser    Boolean @default(false)
 
   @@map("users")
 }
@@ -83,7 +96,7 @@ model DeathVerification {
   deceasedProfileId String
   relationship      String
   deceasedDob       DateTime
-  deathCertificate  String 
+  deathCertificate  String
   optionalNote      String?
 
   status VerificationStatus @default(PENDING)
@@ -98,31 +111,31 @@ model DeathVerification {
 }
 
 model MemoryClaimRequest {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
   // Claimant Information
-  claimantName       String
-  claimantEmail      String
-  claimantPhone      String
-  claimantDob        DateTime
+  claimantName  String
+  claimantEmail String
+  claimantPhone String
+  claimantDob   DateTime
 
   // Deceased Information
-  deceasedName       String
-  deceasedProfileId  String
-  relationship       String
-  deceasedDob        DateTime
+  deceasedName      String
+  deceasedProfileId String
+  relationship      String
+  deceasedDob       DateTime
 
   // File Upload & Notes
-  deathCertificate   String
-  optionalNote       String?
-  contactId         String? @db.ObjectId
+  deathCertificate String
+  optionalNote     String?
+  contactId        String? @db.ObjectId
 
-  status             VerificationStatus @default(PENDING)
-  user               User?   @relation(fields: [userId], references: [userId])
-  userId             String? 
+  status VerificationStatus @default(PENDING)
+  user   User?              @relation(fields: [userId], references: [userId])
+  userId String?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("memory_claim_requests")
 }
@@ -183,8 +196,8 @@ model UserMemory {
 
   isContactList Boolean @default(false)
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("user_memory")
 }

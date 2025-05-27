@@ -38,7 +38,7 @@ export const parseBodyFileUploader = catchAsync(
     if (!findUser) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
-        "User not found for the provided deceasedProfileId"
+        "User not found for the provided deceasedProfileId or claimantEmail"
       );
     }
 

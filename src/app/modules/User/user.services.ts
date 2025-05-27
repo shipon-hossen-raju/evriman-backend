@@ -15,11 +15,21 @@ import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
 
 // Create a new user in the database.
-const createUserIntoDb = async (payload: User) => {
+const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
+  const justEmail = await prisma.user.findFirst({
+    where: {
+      email: payload.email,
+    },
+  });
+
+  console.log("justEmail ", justEmail);
+
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
       email: payload.email,
+      ...(payload.loginType === "PARTNER" && { isPartner: true }),
+      ...(payload.loginType === "USER" && { isUser: true }),
     },
   });
 
@@ -45,10 +55,32 @@ const createUserIntoDb = async (payload: User) => {
   const userIdString = (userId + 100001).toString();
   const userIdNumber = parseInt(userIdString, 10);
 
+  // const {password, ...restPayload} = payload;
+
+  // Ensure password is always a string
+  let password: string;
+  if (payload.isNewData === true) {
+    password = hashedPassword;
+  } else if (justEmail?.password) {
+    password = justEmail.password;
+  } else {
+    throw new ApiError(400, "Password is required for user creation");
+  }
+
+  const { isNewData, ...restPayload } = payload;
+  const {
+    referralCode,
+    partnerAgreement,
+    updatedAt,
+    partnerType,
+    businessName,
+    ...restPayloadFiltered
+  } = restPayload;
+
   const userData = {
-    ...payload,
+    ...restPayloadFiltered,
     userId: userIdNumber.toString(),
-    password: hashedPassword,
+    password,
     otp,
     expirationOtp: otpExpires,
     loginType: payload.loginType as LoginType,
@@ -66,29 +98,76 @@ const createUserIntoDb = async (payload: User) => {
     isDeceased: payload.isDeceased,
     createdAt: new Date(),
     updatedAt: new Date(),
+
+    // partner information
+    partnerAgreement: payload?.partnerAgreement || null,
+    partnerType: payload?.partnerType || null,
+    businessName: payload?.businessName || null,
+
+    ...(payload.loginType === "PARTNER" && { isPartner: true }),
+    ...(payload.loginType === "USER" && { isUser: true }),
   };
+
+  console.log("userData ", userData);
 
   const env = config.env === "development" ? true : false;
 
-  const result = await prisma.user.create({
-    data: userData,
-    select: {
-      id: true,
-      userId: true,
-      email: true,
-      role: true,
-      fullName: true,
-      createdAt: true,
-      updatedAt: true,
-      otp: env,
-    },
-  });
+  // update user data if user already exists
+  let result;
+  if (
+    justEmail?.id && justEmail?.email
+  ) {
+    console.log(" Updating existing user data...");
+
+
+    await prisma.user.update({
+      where: {
+        email: justEmail.email,
+        id: justEmail.id,
+      },
+      data: {
+        ...userData,
+        otp,
+        expirationOtp: otpExpires,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        role: true,
+        fullName: true,
+        createdAt: true,
+        updatedAt: true,
+        otp: env,
+      },
+    });
+  } else {
+    console.log(" Creating new user data...");
+    result = await prisma.user.create({
+      data: userData,
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        role: true,
+        fullName: true,
+        createdAt: true,
+        updatedAt: true,
+        otp: env,
+      },
+    });
+  }
+
+  console.log("result ", result);
+
   const token = jwtHelpers.generateToken(
     {
-      id: result.id,
-      email: result.email,
-      role: result.role,
-      name: result.fullName,
+      id: result?.id,
+      email: result?.email,
+      role: result?.role,
+      LoginType: payload.loginType,
+      name: result?.fullName,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
