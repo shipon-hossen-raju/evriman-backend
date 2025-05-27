@@ -48,32 +48,24 @@ const loginUser = async (payload: { email: string; password: string }) => {
 
 // get user profile
 const getMyProfile = async (id: string) => {
+  console.log("getMyProfile id", id);
   const userProfile = await prisma.user.findUnique({
     where: {
       id: id,
     },
-    select: {
-      id: true,
-      email: true,
-      createdAt: true,
-      updatedAt: true,
+    include: {
       ContactList: true,
-      address: true,
-      dob: true,
-      fullName: true,
-      idDocument: true,
-      phoneNumber: true,
-      isDeceased: true,
-      isVerified: true,
-      status: true,
-      UserDynamicFieldValue: true,
-      role: true,
-      loginType: true,
-      offerCodes: true,
-      referralCode: true,
       memories: true,
+      deathVerification: true,
+      memoryClaimRequests: true,
+      offerCodes: true,
     },
   });
+
+  if (userProfile) {
+    const { password, ...profileWithoutPassword } = userProfile as any;
+    return profileWithoutPassword;
+  }
 
   return userProfile;
 };

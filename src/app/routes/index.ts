@@ -9,6 +9,7 @@ import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.rout
 import tagsRoute from "../modules/tags/tags.rotue";
 import { userRoutes } from "../modules/user/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
+import { memoryClaimRequestRoutes } from "../modules/memoryClaimRequest/memoryClaimRequest.routes";
 
 const router = express.Router();
 
@@ -52,6 +53,10 @@ const moduleRoutes = [
   {
     path: "/death-verification",
     route: deathVerificationRoutes,
+  },
+  {
+    path: "/memory-claim-request",
+    route: memoryClaimRequestRoutes,
   },
 ];
 
