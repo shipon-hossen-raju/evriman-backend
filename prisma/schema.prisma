@@ -66,6 +66,7 @@ model User {
   ContactList           ContactList[]
   memories              UserMemory[]            @relation("UserMemories")
   deathVerification     DeathVerification[]
+  memoryClaimRequests  MemoryClaimRequest[]
 
   @@map("users")
 }
@@ -94,6 +95,36 @@ model DeathVerification {
   updatedAt DateTime @updatedAt
 
   @@map("death_verification")
+}
+
+model MemoryClaimRequest {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Claimant Information
+  claimantName       String
+  claimantEmail      String
+  claimantPhone      String
+  claimantDob        DateTime
+
+  // Deceased Information
+  deceasedName       String
+  deceasedProfileId  String
+  relationship       String
+  deceasedDob        DateTime
+
+  // File Upload & Notes
+  deathCertificate   String
+  optionalNote       String?
+  contactId         String? @db.ObjectId
+
+  status             VerificationStatus @default(PENDING)
+  user               User?   @relation(fields: [userId], references: [userId])
+  userId             String? 
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("memory_claim_requests")
 }
 
 // =======================================================
@@ -147,10 +178,13 @@ model UserMemory {
 
   contacts UserMemoryContact[]
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
   contactListId String?      @db.ObjectId
   ContactList   ContactList? @relation("ContactListToUserMemories", fields: [contactListId], references: [id])
+
+  isContactList Boolean @default(false)
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@map("user_memory")
 }
