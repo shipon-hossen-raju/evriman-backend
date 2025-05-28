@@ -32,6 +32,7 @@ dynamicUserDataRoute.patch(
 // get all dynamic user data
 dynamicUserDataRoute.get(
   "/all",
+  auth(),
   dynamicUserDataController.getAllDynamicUserData
 );
 
@@ -45,6 +46,7 @@ dynamicUserDataRoute.get(
 // get dynamic user data by id
 dynamicUserDataRoute.get(
   "/:id",
+  auth(),
   dynamicUserDataController.getDynamicUserDataById
 );
 

@@ -34,10 +34,11 @@ const loginUser = async (payload: { email: string; password: string }) => {
   }
   const accessToken = jwtHelpers.generateToken(
     {
-      id: userData.id,
-      email: userData.email,
-      role: userData.role,
-      fullName: userData.fullName,
+      id: userData?.id,
+      email: userData?.email,
+      role: userData?.role,
+      LoginType: userData?.loginType,
+      name: userData?.fullName,
     },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string
@@ -97,7 +98,10 @@ const changePassword = async (
     throw new ApiError(401, "Incorrect old password");
   }
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  const hashedPassword = await bcrypt.hash(
+    newPassword,
+    Number(config.bcrypt_salt_rounds)
+  );
 
   const result = await prisma.user.update({
     where: {
@@ -274,7 +278,10 @@ const resetPassword = async (payload: { password: string; email: string }) => {
   }
 
   // Hash the new password
-  const hashedPassword = await bcrypt.hash(payload.password, 10);
+  const hashedPassword = await bcrypt.hash(
+    payload.password,
+    Number(config.bcrypt_salt_rounds)
+  );
 
   // Update the user's password in the database
   await prisma.user.update({

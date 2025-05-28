@@ -18,6 +18,36 @@ router.post(
   userController.createUser
 );
 
+// partner complete profile
+router.put(
+  "/partner-complete/",
+  auth(),
+  validateRequest(userValidation.partnerCompleteProfileSchema),
+  userController.partnerCompleteProfile
+);
+
+// partner complete profile
+router.get(
+  "/partner/all",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.getAllPartner
+);
+
+// partner complete profile
+router.get(
+  "/partner/:id",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.getPartner
+);
+
+// partner complete update
+router.patch(
+  "/partner/:id",
+  validateRequest(userValidation.partnerStatusSchema),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.updatePartnerStatus
+);
+
 // *!get all  user
 router.get("/", userController.getUsers);
 
@@ -26,7 +56,7 @@ router.put(
   "/profile",
   // validateRequest(userValidation.userUpdateSchema),
 
-  auth(UserRole.ADMIN, UserRole.USER),
+  auth(UserRole.ADMIN, UserRole.USER, UserRole.PARTNER, UserRole.SUPER_ADMIN),
   fileUploader.uploadSingle,
   userController.updateProfile
 );
