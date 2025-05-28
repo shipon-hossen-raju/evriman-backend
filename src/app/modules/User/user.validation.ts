@@ -44,7 +44,7 @@ export const CreateUserValidationSchema = z.object({
     })
     .optional(),
   referralCode: z.string().optional(),
-  address: z.string(),
+  address: z.string().optional(),
   idDocument: z.string().optional(),
 
   // partner information

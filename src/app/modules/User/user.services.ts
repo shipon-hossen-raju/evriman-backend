@@ -22,8 +22,6 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     },
   });
 
-  console.log("justEmail ", justEmail);
-
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -108,8 +106,6 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     ...(payload.loginType === "USER" && { isUser: true }),
   };
 
-  console.log("userData ", userData);
-
   const env = config.env === "development" ? true : false;
 
   // update user data if user already exists
@@ -117,10 +113,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
   if (
     justEmail?.id && justEmail?.email
   ) {
-    console.log(" Updating existing user data...");
 
-
-    await prisma.user.update({
+    result = await prisma.user.update({
       where: {
         email: justEmail.email,
         id: justEmail.id,
@@ -137,13 +131,13 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
         email: true,
         role: true,
         fullName: true,
+        loginType: true,
         createdAt: true,
         updatedAt: true,
         otp: env,
       },
     });
   } else {
-    console.log(" Creating new user data...");
     result = await prisma.user.create({
       data: userData,
       select: {
@@ -151,6 +145,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
         userId: true,
         email: true,
         role: true,
+        loginType: true,
         fullName: true,
         createdAt: true,
         updatedAt: true,
@@ -159,14 +154,12 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     });
   }
 
-  console.log("result ", result);
-
   const token = jwtHelpers.generateToken(
     {
       id: result?.id,
       email: result?.email,
       role: result?.role,
-      LoginType: payload.loginType,
+      LoginType: result?.loginType,
       name: result?.fullName,
     },
     config.jwt.jwt_secret as Secret,

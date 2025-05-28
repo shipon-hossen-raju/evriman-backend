@@ -76,7 +76,7 @@ model User {
   // partner information
   businessName     String?
   partnerType      PartnerType?
-  partnerAgreement String?
+  partnerAgreement Boolean?
 
   isPartner Boolean @default(false)
   isUser    Boolean @default(false)
