@@ -26,6 +26,28 @@ router.put(
   userController.partnerCompleteProfile
 );
 
+// partner complete profile
+router.get(
+  "/partner/all",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.getAllPartner
+);
+
+// partner complete profile
+router.get(
+  "/partner/:id",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.getPartner
+);
+
+// partner complete update
+router.patch(
+  "/partner/:id",
+  validateRequest(userValidation.partnerStatusSchema),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  userController.updatePartnerStatus
+);
+
 // *!get all  user
 router.get("/", userController.getUsers);
 

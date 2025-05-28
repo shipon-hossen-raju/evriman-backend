@@ -1,4 +1,4 @@
-import { LoginType, PartnerType, UserRole } from "@prisma/client";
+import { LoginType, PartnerType, UserRole, VerificationStatus } from "@prisma/client";
 import { z } from "zod";
 
 // Helper schemas
@@ -43,7 +43,7 @@ export const CreateUserValidationSchema = z.object({
       errorMap: () => ({ message: "You must accept the privacy policy" }),
     })
     .optional(),
-  referralCode: z.string().optional(),
+  referralCodeUsed: z.string().optional(),
   address: z.string().optional(),
   idDocument: z.string().optional(),
 
@@ -68,8 +68,13 @@ const partnerCompleteProfileSchema = z.object({
   shortCode: z.string().optional()
 });
 
+const partnerStatusSchema = z.object({
+  partnerStatus: z.nativeEnum(VerificationStatus)
+});
+
 
 export const userValidation = {
   CreateUserValidationSchema,
   partnerCompleteProfileSchema,
+  partnerStatusSchema,
 };

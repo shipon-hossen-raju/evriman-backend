@@ -22,4 +22,5 @@ export default {
     app_pass: process.env.APP_PASS,
   },
   site_name: process.env.WEBSITE_NAME,
+  contact_mail: process.env.CONTACT_MAIL,
 };

@@ -1,4 +1,4 @@
-import { LoginType, Prisma, User } from "@prisma/client";
+import { LoginType, Prisma, User, VerificationStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { Request } from "express";
 import httpStatus from "http-status";
@@ -13,6 +13,8 @@ import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
+import emailSender from "../../../shared/emailSender";
+import { ApprovedMailTemp, RejectedMailTemp } from "./user.mail";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
@@ -67,7 +69,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
 
   const { isNewData, ...restPayload } = payload;
   const {
-    referralCode,
+    referralCodeUsed,
     partnerAgreement,
     updatedAt,
     partnerType,
@@ -89,7 +91,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     address: payload.address,
     dob: payload.dob,
     idDocument: payload.idDocument,
-    referralCode: payload.referralCode,
+    referralCodeUsed: payload.referralCodeUsed,
     termsAccepted: payload.termsAccepted,
     privacyAccepted: payload.privacyAccepted,
     isVerified: payload.isVerified,
@@ -110,10 +112,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
 
   // update user data if user already exists
   let result;
-  if (
-    justEmail?.id && justEmail?.email
-  ) {
-
+  if (justEmail?.id && justEmail?.email) {
     result = await prisma.user.update({
       where: {
         email: justEmail.email,
@@ -170,14 +169,17 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
 };
 
 // partner complete profile
-const partnerCompleteProfileIntoDb = async (id: string, payload: Partial<User>) => {
+const partnerCompleteProfileIntoDb = async (
+  id: string,
+  payload: Partial<User>
+) => {
   const findUser = await prisma.user.findFirst({
     where: {
-      id
+      id,
     },
     select: {
-      id: true
-    }
+      id: true,
+    },
   });
 
   // check if user exists
@@ -190,13 +192,13 @@ const partnerCompleteProfileIntoDb = async (id: string, payload: Partial<User>) 
     data: {
       ...payload,
       updatedAt: new Date(),
-    }
+    },
   });
 
   return updatedUser;
-}
+};
 
-// reterive all users from the database also searcing anf filetering
+// reterive all users from the database also searching anf filtering
 const getUsersFromDb = async (
   params: IUserFilterRequest,
   options: IPaginationOptions
@@ -266,6 +268,193 @@ const getUsersFromDb = async (
     },
     data: result,
   };
+};
+
+// reterive all partner from the database also searching anf filtering
+const getAllPartnerFromDb = async (
+  params: IUserFilterRequest,
+  options: IPaginationOptions
+) => {
+  const { page, limit, skip } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterData } = params;
+
+  const andConditions: Prisma.UserWhereInput[] = [];
+
+  if (params.searchTerm) {
+    andConditions.push({
+      OR: userSearchAbleFields.map((field) => ({
+        [field]: {
+          contains: params.searchTerm,
+          mode: "insensitive",
+        },
+      })),
+    });
+  }
+
+  if (Object.keys(filterData).length > 0) {
+    andConditions.push({
+      AND: Object.keys(filterData).map((key) => ({
+        [key]: {
+          equals: (filterData as any)[key],
+        },
+      })),
+    });
+  }
+  const whereConditions: Prisma.UserWhereInput = {
+    AND: {
+      ...andConditions,
+      isPartner: true,
+      role: "USER",
+    },
+  };
+
+  const result = await prisma.user.findMany({
+    where: whereConditions,
+    skip,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? {
+            [options.sortBy]: options.sortOrder,
+          }
+        : {
+            createdAt: "desc",
+          },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      isPartner: true,
+      isUser: true,
+      phoneNumber: true,
+      dob: true,
+      address: true,
+      createdAt: true,
+      updatedAt: true,
+      accountHolderName: true,
+      accountNumber: true,
+      bankName: true,
+      businessName: true,
+      shortCode: true,
+      partnerAgreement: true,
+      partnerStatus: true,
+    },
+  });
+  const total = await prisma.user.count({
+    where: whereConditions,
+  });
+
+  if (!result || result.length === 0) {
+    throw new ApiError(404, "No active users found");
+  }
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
+
+// get partner
+const getPartner = async (id: string) => {
+  const result = await prisma.user.findFirst({
+    where: { id },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      isPartner: true,
+      isUser: true,
+      phoneNumber: true,
+      dob: true,
+      address: true,
+      createdAt: true,
+      updatedAt: true,
+      accountHolderName: true,
+      accountNumber: true,
+      bankName: true,
+      businessName: true,
+      shortCode: true,
+      partnerAgreement: true,
+      partnerStatus: true,
+    },
+  });
+
+  return result;
+};
+
+// update partner status
+const updatePartnerStatus = async (
+  id: string,
+  payload: { partnerStatus: VerificationStatus }
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  let updatedUser;
+  if (payload.partnerStatus === "APPROVED") {
+    updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        partnerStatus: payload.partnerStatus,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        partnerStatus: true,
+        updatedAt: true,
+        businessName: true,
+      },
+    });
+
+    // send email to user
+    const email = await emailSender(
+      updatedUser.email,
+      ApprovedMailTemp({
+        name: updatedUser.fullName,
+        status: updatedUser.partnerStatus ?? "APPROVED",
+      }),
+      `Partner Status Notification from ${config.site_name}`
+    );
+  } else if (payload.partnerStatus === "REJECTED") {
+    updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        partnerStatus: payload.partnerStatus,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        partnerStatus: true,
+        updatedAt: true,
+        businessName: true,
+      },
+    });
+
+    // send email to user
+    const email = await emailSender(
+      updatedUser.email,
+      RejectedMailTemp({
+        name: updatedUser.fullName,
+        status: updatedUser.partnerStatus ?? "REJECTED",
+      }),
+      `Partner Status Notification from ${config.site_name}`
+    );
+  }
+
+  return updatedUser;
 };
 
 // update profile by user won profile uisng token or email and id
@@ -347,7 +536,10 @@ const updateUserIntoDb = async (payload: User, id: string) => {
 export const userService = {
   createUserIntoDb,
   partnerCompleteProfileIntoDb,
+  getAllPartnerFromDb,
   getUsersFromDb,
   updateProfile,
   updateUserIntoDb,
+  getPartner,
+  updatePartnerStatus,
 };
