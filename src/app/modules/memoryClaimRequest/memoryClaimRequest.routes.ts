@@ -5,9 +5,11 @@ import validateRequest from "../../middlewares/validateRequest";
 import { memoryClaimRequestController } from "./memoryClaimRequest.controller";
 import { parseBodyFileUploader } from "./memoryClaimRequest.parseBodyFileUploader";
 import { memoryClaimRequestValidation } from "./memoryClaimRequest.validation";
+import { UserRole } from "@prisma/client";
 
 const memoryClaimRouter = express.Router();
 
+// create memory claim 
 memoryClaimRouter.post(
   "/create",
 //   auth(),
@@ -17,6 +19,7 @@ memoryClaimRouter.post(
   memoryClaimRequestController.createMemoryClaimRequest
 );
 
+// 
 memoryClaimRouter.get(
   "/",
   auth(),
@@ -31,14 +34,14 @@ memoryClaimRouter.get(
 
 memoryClaimRouter.put(
   "/:id",
-  auth(),
+  auth(UserRole.ADMIN),
   validateRequest(memoryClaimRequestValidation.updateSchema),
   memoryClaimRequestController.updateMemoryClaimRequest
 );
 
 memoryClaimRouter.delete(
   "/:id",
-  auth(),
+  auth(UserRole.ADMIN),
   memoryClaimRequestController.deleteMemoryClaimRequest
 );
 

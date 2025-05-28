@@ -26,7 +26,7 @@ router.put(
   "/profile",
   // validateRequest(userValidation.userUpdateSchema),
 
-  auth(UserRole.ADMIN, UserRole.USER),
+  auth(UserRole.ADMIN, UserRole.USER, UserRole.PARTNER, UserRole.SUPER_ADMIN),
   fileUploader.uploadSingle,
   userController.updateProfile
 );

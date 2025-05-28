@@ -20,7 +20,11 @@ contactListRouter.post(
 );
 
 // find all contact list
-contactListRouter.get("/", contactListController.getAllContactList);
+contactListRouter.get(
+  "/",
+  auth(UserRole.ADMIN),
+  contactListController.getAllContactList
+);
 
 // find contact list by userId
 contactListRouter.get(

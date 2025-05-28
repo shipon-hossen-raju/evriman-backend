@@ -98,7 +98,10 @@ const changePassword = async (
     throw new ApiError(401, "Incorrect old password");
   }
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  const hashedPassword = await bcrypt.hash(
+    newPassword,
+    Number(config.bcrypt_salt_rounds)
+  );
 
   const result = await prisma.user.update({
     where: {
@@ -275,7 +278,10 @@ const resetPassword = async (payload: { password: string; email: string }) => {
   }
 
   // Hash the new password
-  const hashedPassword = await bcrypt.hash(payload.password, 10);
+  const hashedPassword = await bcrypt.hash(
+    payload.password,
+    Number(config.bcrypt_salt_rounds)
+  );
 
   // Update the user's password in the database
   await prisma.user.update({
