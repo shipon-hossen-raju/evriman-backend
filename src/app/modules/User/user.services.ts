@@ -169,6 +169,33 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
   return { result, token, otp };
 };
 
+// partner complete profile
+const partnerCompleteProfileIntoDb = async (id: string, payload: Partial<User>) => {
+  const findUser = await prisma.user.findFirst({
+    where: {
+      id
+    },
+    select: {
+      id: true
+    }
+  });
+
+  // check if user exists
+  if (!findUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: {
+      ...payload,
+      updatedAt: new Date(),
+    }
+  });
+
+  return updatedUser;
+}
+
 // reterive all users from the database also searcing anf filetering
 const getUsersFromDb = async (
   params: IUserFilterRequest,
@@ -319,6 +346,7 @@ const updateUserIntoDb = async (payload: User, id: string) => {
 
 export const userService = {
   createUserIntoDb,
+  partnerCompleteProfileIntoDb,
   getUsersFromDb,
   updateProfile,
   updateUserIntoDb,

@@ -18,6 +18,14 @@ router.post(
   userController.createUser
 );
 
+// partner complete profile
+router.put(
+  "/partner-complete/",
+  auth(),
+  validateRequest(userValidation.partnerCompleteProfileSchema),
+  userController.partnerCompleteProfile
+);
+
 // *!get all  user
 router.get("/", userController.getUsers);
 

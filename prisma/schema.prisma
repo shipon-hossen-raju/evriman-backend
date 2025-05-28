@@ -74,9 +74,13 @@ model User {
   memoryClaimRequests   MemoryClaimRequest[]
 
   // partner information
-  businessName     String?
-  partnerType      PartnerType?
-  partnerAgreement Boolean?
+  businessName      String?
+  partnerType       PartnerType?
+  partnerAgreement  Boolean?
+  bankName          String?      @default("")
+  accountHolderName String?      @default("")
+  accountNumber     String?      @default("")
+  shortCode         String?      @default("")
 
   isPartner Boolean @default(false)
   isUser    Boolean @default(false)

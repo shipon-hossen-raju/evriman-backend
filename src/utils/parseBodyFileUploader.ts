@@ -35,8 +35,6 @@ export const parseBodyFileUploader = catchAsync(
 
     req.body = userData;
 
-    console.log("Parsed body data: ", req.body);
-
     next();
   }
 );

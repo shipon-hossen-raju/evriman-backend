@@ -16,8 +16,8 @@ const contactListCreate = catchAsync(async (req, res) => {
 
 // contact list find by userId
 const contactListFindByUserId = catchAsync(async (req, res) => {
-  const { userId } = req.params;
-  const result = await contactListService.getContactListsByUserId(userId);
+  const { id } = req.user;
+  const result = await contactListService.getContactListsByUserId(id);
 
   sendResponse(res, {
     statusCode: 200,

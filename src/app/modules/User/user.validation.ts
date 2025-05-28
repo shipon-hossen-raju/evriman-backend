@@ -61,48 +61,15 @@ export const CreateUserValidationSchema = z.object({
   }),
 });
 
-// export const UpdateUserValidationSchema = z.object({
-//   fullName: z.string().min(2).optional(),
-//   email: z.string().email().optional(),
-//   phoneNumber: phoneSchema.optional(),
-//   status: z.nativeEnum(UserStatus).optional(),
-//   role: z.nativeEnum(UserRole).optional(),
-// });
+const partnerCompleteProfileSchema = z.object({
+  bankName: z.string().optional(),
+  accountHolderName: z.string().optional(),
+  accountNumber: z.string().optional(),
+  shortCode: z.string().optional()
+});
 
-// export const LoginValidationSchema = z.object({
-//   email: z.string().email(),
-//   password: z.string().min(1, "Password is required"),
-//   otp: z.number().min(1000, "OTP must be 4 digits").max(9999).optional(),
-// });
-
-// export const ContactValidationSchema = z.object({
-//   fullName: z.string().min(2),
-//   email: z.string().email(),
-//   phoneNumber: phoneSchema.optional(),
-//   dob: dateSchema,
-//   isMinor: z.boolean().default(false),
-//   guardianId: z.string().optional(), // Only required if isMinor is true
-//   relationship: z.string().optional(),
-// });
-
-// const CreateUserValidationSchema = z.object({
-//   email: z.string().email("Invalid email address").min(1, "Email is required"), // Ensure email is provided and is valid
-
-//   name: z.string().optional(),
-//   password: z
-//     .string()
-//     .min(8, "Password must be at least 8 characters long")
-//     .nonempty("Password is required"),
-// });
-
-// const userUpdateSchema = z.object({
-//   firstName: z.string().optional(),
-//   lastName: z.string().optional(),
-//   promoCode: z.string().optional(),
-//   profession: z.string().optional(),
-// });
 
 export const userValidation = {
   CreateUserValidationSchema,
-  // userUpdateSchema,
+  partnerCompleteProfileSchema,
 };

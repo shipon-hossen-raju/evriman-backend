@@ -28,7 +28,7 @@ contactListRouter.get(
 
 // find contact list by userId
 contactListRouter.get(
-  "/user/:userId",
+  "/user/",
   auth(UserRole.USER, UserRole.PARTNER),
   contactListController.contactListFindByUserId
 );

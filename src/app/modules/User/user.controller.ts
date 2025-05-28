@@ -29,6 +29,21 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// partner complete profile
+const partnerCompleteProfile = catchAsync(async (req, res) => {
+  const result = await userService.partnerCompleteProfileIntoDb(
+    req.user?.id, req.body
+  );
+
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Partner profile completed successfully!",
+    data: result,
+  });
+})
+
 // get all user form db
 const getUsers = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, userFilterableFields);
@@ -75,4 +90,5 @@ export const userController = {
   getUsers,
   updateProfile,
   updateUser,
+  partnerCompleteProfile,
 };
