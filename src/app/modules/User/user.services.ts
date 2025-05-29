@@ -386,6 +386,30 @@ const getPartner = async (id: string) => {
   return result;
 };
 
+const generateCode = () => {
+  const randomCode = Math.floor(100000 + Math.random() * 900000);
+  const code = `${randomCode}`;
+  return code;
+}
+
+async function generateUniquePartnerCode(): Promise<string> {
+  let unique = false;
+  let partnerCode = "";
+
+  while (!unique) {
+    partnerCode = await generateCode();
+    const exists = await prisma.partnerCode.findUnique({
+      where: { partnerCode },
+    });
+
+    if (!exists) {
+      unique = true;
+    }
+  }
+
+  return partnerCode;
+}
+
 // update partner status
 const updatePartnerStatus = async (
   id: string,
@@ -393,6 +417,10 @@ const updatePartnerStatus = async (
 ) => {
   const user = await prisma.user.findUnique({
     where: { id },
+    select: {
+      id: true,
+      email: true
+    }
   });
 
   if (!user) {
@@ -418,12 +446,39 @@ const updatePartnerStatus = async (
       },
     });
 
+    // Generate a unique partner code using a random 6-digit number and user id
+    let partnerCode = await generateUniquePartnerCode();
+
+    // check again 
+    const findPartner = await prisma.partnerCode.findUnique({
+      where: {
+        userId: user.id
+      },
+      select: {
+        partnerCode: true,
+        id: true
+      }
+    });
+
+    console.log("findPartner ", findPartner);
+
+    if (!findPartner)  {
+      await prisma.partnerCode.create({
+        data: {
+          partnerCode: partnerCode,
+          userId: updatedUser.id,
+        },
+      });
+    }
+      
+
     // send email to user
     const email = await emailSender(
       updatedUser.email,
       ApprovedMailTemp({
         name: updatedUser.fullName,
         status: updatedUser.partnerStatus ?? "APPROVED",
+        partnerCode: findPartner ? findPartner.partnerCode : partnerCode,
       }),
       `Partner Status Notification from ${config.site_name}`
     );

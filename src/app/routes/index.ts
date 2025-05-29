@@ -10,6 +10,7 @@ import tagsRoute from "../modules/tags/tags.rotue";
 import { userRoutes } from "../modules/user/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
 import { memoryClaimRequestRoutes } from "../modules/memoryClaimRequest/memoryClaimRequest.routes";
+import { partnerRoutes } from "../modules/partner/partner.routes";
 
 const router = express.Router();
 
@@ -57,6 +58,10 @@ const moduleRoutes = [
   {
     path: "/memory-claim-request",
     route: memoryClaimRequestRoutes,
+  },
+  {
+    path: "/partner",
+    route: partnerRoutes,
   },
 ];
 
