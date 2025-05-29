@@ -60,6 +60,7 @@ model User {
   dob              DateTime?
   idDocument       String?
   referralCodeUsed String?
+  userPoint        Int        @default(0)
 
   termsAccepted   Boolean @default(false)
   privacyAccepted Boolean @default(false)
@@ -227,7 +228,6 @@ model Payment {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
   amount        Float
-  currency      String
   transactionId String @unique
   paymentMethod String
 

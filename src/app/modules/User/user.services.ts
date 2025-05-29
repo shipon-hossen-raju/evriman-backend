@@ -15,6 +15,7 @@ import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
 import { ApprovedMailTemp, RejectedMailTemp } from "./user.mail";
+import { generateUniquePartnerCode, generateUniqueUserId } from "./user.utils";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
@@ -24,6 +25,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     },
   });
 
+  console.log("justEmail ", justEmail);
+
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -32,6 +35,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       ...(payload.loginType === "USER" && { isUser: true }),
     },
   });
+
+  console.log("existingUser ", existingUser);
 
   if (existingUser) {
     if (existingUser.email === payload.email) {
@@ -50,10 +55,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
   // Generate a new OTP
   const { otp, otpExpires } = generateOTP();
 
-  // create user id
-  const userId = await prisma.user.count();
-  const userIdString = (userId + 100001).toString();
-  const userIdNumber = parseInt(userIdString, 10);
+  // create user id  
+  const userId = await generateUniqueUserId();
 
   // const {password, ...restPayload} = payload;
 
@@ -79,7 +82,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
 
   const userData = {
     ...restPayloadFiltered,
-    userId: userIdNumber.toString(),
+    userId: userId.toString(),
     password,
     otp,
     expirationOtp: otpExpires,
@@ -107,6 +110,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     ...(payload.loginType === "PARTNER" && { isPartner: true }),
     ...(payload.loginType === "USER" && { isUser: true }),
   };
+
+  console.log("userData ", userData);
 
   const env = config.env === "development" ? true : false;
 
@@ -138,7 +143,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     });
   } else {
     result = await prisma.user.create({
-      data: userData,
+      data: {...userData},
       select: {
         id: true,
         userId: true,
@@ -386,30 +391,6 @@ const getPartner = async (id: string) => {
   return result;
 };
 
-const generateCode = () => {
-  const randomCode = Math.floor(100000 + Math.random() * 900000);
-  const code = `${randomCode}`;
-  return code;
-}
-
-async function generateUniquePartnerCode(): Promise<string> {
-  let unique = false;
-  let partnerCode = "";
-
-  while (!unique) {
-    partnerCode = await generateCode();
-    const exists = await prisma.partnerCode.findUnique({
-      where: { partnerCode },
-    });
-
-    if (!exists) {
-      unique = true;
-    }
-  }
-
-  return partnerCode;
-}
-
 // update partner status
 const updatePartnerStatus = async (
   id: string,
@@ -419,8 +400,8 @@ const updatePartnerStatus = async (
     where: { id },
     select: {
       id: true,
-      email: true
-    }
+      email: true,
+    },
   });
 
   if (!user) {
@@ -447,22 +428,22 @@ const updatePartnerStatus = async (
     });
 
     // Generate a unique partner code using a random 6-digit number and user id
-    let partnerCode = await generateUniquePartnerCode();
+    const partnerCode = await generateUniquePartnerCode();
 
-    // check again 
+    // check again
     const findPartner = await prisma.partnerCode.findUnique({
       where: {
-        userId: user.id
+        userId: user.id,
       },
       select: {
         partnerCode: true,
-        id: true
-      }
+        id: true,
+      },
     });
 
     console.log("findPartner ", findPartner);
 
-    if (!findPartner)  {
+    if (!findPartner) {
       await prisma.partnerCode.create({
         data: {
           partnerCode: partnerCode,
@@ -470,7 +451,6 @@ const updatePartnerStatus = async (
         },
       });
     }
-      
 
     // send email to user
     const email = await emailSender(

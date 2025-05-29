@@ -55,7 +55,6 @@ const loginUser = async (payload: { email: string; password: string, loginType: 
 
 // get user profile
 const getMyProfile = async (id: string) => {
-  console.log("getMyProfile id", id);
   const userProfile = await prisma.user.findUnique({
     where: {
       id: id,

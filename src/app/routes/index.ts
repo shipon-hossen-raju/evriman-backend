@@ -4,13 +4,14 @@ import contactListRouter from "../modules/contactList/contactList.route";
 import { deathVerificationRoutes } from "../modules/deathVerification/deathVerification.routes";
 import dynamicFieldRoute from "../modules/dynamicField/dynamicField.rotue";
 import dynamicUserDataRoute from "../modules/dynamicUserData/dynamicUserData.route";
+import { memoryClaimRequestRoutes } from "../modules/memoryClaimRequest/memoryClaimRequest.routes";
 import offerCodeRoutes from "../modules/offer_codes/offerCode.route";
+import { partnerRoutes } from "../modules/partner/partner.routes";
+import { paymentRoutes } from "../modules/payment/payment.routes";
 import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.route";
 import tagsRoute from "../modules/tags/tags.rotue";
 import { userRoutes } from "../modules/user/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
-import { memoryClaimRequestRoutes } from "../modules/memoryClaimRequest/memoryClaimRequest.routes";
-import { partnerRoutes } from "../modules/partner/partner.routes";
 
 const router = express.Router();
 
@@ -62,6 +63,10 @@ const moduleRoutes = [
   {
     path: "/partner",
     route: partnerRoutes,
+  },
+  {
+    path: "/payment",
+    route: paymentRoutes,
   },
 ];
 
