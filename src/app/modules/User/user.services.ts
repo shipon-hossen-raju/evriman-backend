@@ -9,12 +9,13 @@ import { fileUploader } from "../../../helpars/fileUploader";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import { paginationHelper } from "../../../helpars/paginationHelper";
 import { IPaginationOptions } from "../../../interfaces/paginations";
+import emailSender from "../../../shared/emailSender";
 import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
-import emailSender from "../../../shared/emailSender";
 import { ApprovedMailTemp, RejectedMailTemp } from "./user.mail";
+import { generateUniquePartnerCode, generateUniqueUserId } from "./user.utils";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
@@ -24,6 +25,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     },
   });
 
+  console.log("justEmail ", justEmail);
+
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -32,6 +35,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       ...(payload.loginType === "USER" && { isUser: true }),
     },
   });
+
+  console.log("existingUser ", existingUser);
 
   if (existingUser) {
     if (existingUser.email === payload.email) {
@@ -50,10 +55,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
   // Generate a new OTP
   const { otp, otpExpires } = generateOTP();
 
-  // create user id
-  const userId = await prisma.user.count();
-  const userIdString = (userId + 100001).toString();
-  const userIdNumber = parseInt(userIdString, 10);
+  // create user id  
+  const userId = await generateUniqueUserId();
 
   // const {password, ...restPayload} = payload;
 
@@ -79,7 +82,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
 
   const userData = {
     ...restPayloadFiltered,
-    userId: userIdNumber.toString(),
+    userId: userId.toString(),
     password,
     otp,
     expirationOtp: otpExpires,
@@ -107,6 +110,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     ...(payload.loginType === "PARTNER" && { isPartner: true }),
     ...(payload.loginType === "USER" && { isUser: true }),
   };
+
+  console.log("userData ", userData);
 
   const env = config.env === "development" ? true : false;
 
@@ -138,7 +143,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     });
   } else {
     result = await prisma.user.create({
-      data: userData,
+      data: {...userData},
       select: {
         id: true,
         userId: true,
@@ -393,6 +398,10 @@ const updatePartnerStatus = async (
 ) => {
   const user = await prisma.user.findUnique({
     where: { id },
+    select: {
+      id: true,
+      email: true,
+    },
   });
 
   if (!user) {
@@ -405,6 +414,7 @@ const updatePartnerStatus = async (
       where: { id },
       data: {
         partnerStatus: payload.partnerStatus,
+        role: "PARTNER",
         updatedAt: new Date(),
       },
       select: {
@@ -417,12 +427,38 @@ const updatePartnerStatus = async (
       },
     });
 
+    // Generate a unique partner code using a random 6-digit number and user id
+    const partnerCode = await generateUniquePartnerCode();
+
+    // check again
+    const findPartner = await prisma.partnerCode.findUnique({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        partnerCode: true,
+        id: true,
+      },
+    });
+
+    console.log("findPartner ", findPartner);
+
+    if (!findPartner) {
+      await prisma.partnerCode.create({
+        data: {
+          partnerCode: partnerCode,
+          userId: updatedUser.id,
+        },
+      });
+    }
+
     // send email to user
     const email = await emailSender(
       updatedUser.email,
       ApprovedMailTemp({
         name: updatedUser.fullName,
         status: updatedUser.partnerStatus ?? "APPROVED",
+        partnerCode: findPartner ? findPartner.partnerCode : partnerCode,
       }),
       `Partner Status Notification from ${config.site_name}`
     );

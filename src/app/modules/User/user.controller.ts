@@ -104,7 +104,6 @@ const updateProfile = catchAsync(
 // get partner status form db
 const updatePartnerStatus = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
-    console.log("req.body ", req.body);
     const result = await userService.updatePartnerStatus(req.params.id ,req.body);
     sendResponse(res, {
       statusCode: httpStatus.OK,

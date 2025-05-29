@@ -15,7 +15,7 @@ router.post(
 );
 
 // find all subscriptions
-router.get("/", auth(), subscriptionsController.findAllSubscriptions);
+router.get("/", auth(UserRole.ADMIN), subscriptionsController.findAllSubscriptions);
 
 // find single subscription
 router.get("/:id", auth(), subscriptionsController.findSingleSubscription);

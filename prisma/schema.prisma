@@ -60,11 +60,15 @@ model User {
   dob              DateTime?
   idDocument       String?
   referralCodeUsed String?
+  userPoint        Int        @default(0)
 
   termsAccepted   Boolean @default(false)
   privacyAccepted Boolean @default(false)
   isVerified      Boolean @default(false)
   isDeceased      Boolean @default(false)
+
+  userImage    String @default("")
+  partnerImage String @default("")
 
   offerCodes            UserOfferCode[]
   UserDynamicFieldValue UserDynamicFieldValue[]
@@ -72,7 +76,8 @@ model User {
   memories              UserMemory[]            @relation("UserMemories")
   deathVerification     DeathVerification[]
   memoryClaimRequests   MemoryClaimRequest[]
-  partner               Partner[]
+  partner               PartnerCode?            @relation(fields: [partnerCodeId], references: [id])
+  partnerCodeId         String?                 @db.ObjectId
 
   // partner information
   businessName      String?
@@ -84,10 +89,10 @@ model User {
   shortCode         String?             @default("")
   partnerStatus     VerificationStatus? @default(PENDING)
 
-  isPartner Boolean  @default(false)
-  isUser    Boolean  @default(false)
-  // Partner   Partner? @relation(fields: [partnerId], references: [id])
-  // partnerId String?  @db.ObjectId
+  isPartner Boolean   @default(false)
+  isUser    Boolean   @default(false)
+  isPaid    Boolean   @default(false)
+  Payment   Payment[]
 
   @@map("users")
 }
@@ -210,6 +215,40 @@ model UserMemory {
   @@map("user_memory")
 }
 
+// payment data store
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+model Payment {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  amount        Float
+  transactionId String @unique
+  paymentMethod String
+
+  startDate DateTime
+  endDate   DateTime
+
+  userId             String            @db.ObjectId
+  user               User              @relation(fields: [userId], references: [id])
+  subscriptionPlanId String?           @db.ObjectId
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  pricingOptionId    String?           @db.ObjectId
+  pricingOption      PricingOption?    @relation(fields: [pricingOptionId], references: [id])
+
+  status PaymentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payments")
+}
+
 // =======================================================
 // ===================== User End =======================
 // =======================================================
@@ -219,16 +258,16 @@ model UserMemory {
 // =======================================================
 
 // partner status
-model Partner {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  businessName String
-  partnerCode  String   @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  User         User?    @relation(fields: [userId], references: [id])
-  userId       String?  @db.ObjectId
+model PartnerCode {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  partnerCode String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  User        User[]
+  userId      String   @unique @db.ObjectId
 
-  @@map("user_partner")
+  // @@unique([userId, partnerCode])
+  @@map("user_partner_code")
 }
 
 // =======================================================
@@ -261,6 +300,7 @@ model SubscriptionPlan {
 
   pricingOptions PricingOption[]
   offerCodes     OfferCodeSubscriptionPlan[]
+  Payment        Payment[]
 
   @@map("subscriptions")
 }
@@ -277,6 +317,7 @@ model PricingOption {
   subscriptionPlanId String           @db.ObjectId
 
   offerCodes OfferCodePricingOption[] @relation("OfferCodesForPricingOption")
+  Payment    Payment[]
 
   @@unique([levelId, subscriptionPlanId])
   @@map("pricing_options")

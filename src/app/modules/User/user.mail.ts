@@ -16,8 +16,9 @@ export const OtpHtml = (otp: number) => {
 };
 
 export const ApprovedMailTemp = (payload: {
-  status: VerificationStatus,
-  name: string
+  status: VerificationStatus;
+  name: string;
+  partnerCode: string
 }) => {
   return `
    <!DOCTYPE html>
@@ -81,7 +82,8 @@ export const ApprovedMailTemp = (payload: {
         </p>
 
         <p class="status approved">
-          Your partner status is: <span>${payload.status}</span>
+          Your partner status is: <span>${payload.status}</span> <br />
+          Your partner Partner Code is: <span>${payload.partnerCode}</span>
         </p>
 
         <p>
