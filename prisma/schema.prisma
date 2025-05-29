@@ -72,7 +72,6 @@ model User {
   memories              UserMemory[]            @relation("UserMemories")
   deathVerification     DeathVerification[]
   memoryClaimRequests   MemoryClaimRequest[]
-  partner               Partner[]
 
   // partner information
   businessName      String?
@@ -84,10 +83,10 @@ model User {
   shortCode         String?             @default("")
   partnerStatus     VerificationStatus? @default(PENDING)
 
-  isPartner Boolean  @default(false)
-  isUser    Boolean  @default(false)
-  // Partner   Partner? @relation(fields: [partnerId], references: [id])
-  // partnerId String?  @db.ObjectId
+  isPartner     Boolean      @default(false)
+  isUser        Boolean      @default(false)
+  partner       PartnerCode? @relation(fields: [partnerCodeId], references: [id])
+  partnerCodeId String?      @db.ObjectId
 
   @@map("users")
 }
@@ -219,14 +218,12 @@ model UserMemory {
 // =======================================================
 
 // partner status
-model Partner {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  businessName String
-  partnerCode  String   @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  User         User?    @relation(fields: [userId], references: [id])
-  userId       String?  @db.ObjectId
+model PartnerCode {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  partnerCode String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  User        User[]
 
   @@map("user_partner")
 }

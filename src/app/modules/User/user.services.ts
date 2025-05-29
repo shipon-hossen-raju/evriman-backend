@@ -9,11 +9,11 @@ import { fileUploader } from "../../../helpars/fileUploader";
 import { jwtHelpers } from "../../../helpars/jwtHelpers";
 import { paginationHelper } from "../../../helpars/paginationHelper";
 import { IPaginationOptions } from "../../../interfaces/paginations";
+import emailSender from "../../../shared/emailSender";
 import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
-import emailSender from "../../../shared/emailSender";
 import { ApprovedMailTemp, RejectedMailTemp } from "./user.mail";
 
 // Create a new user in the database.
@@ -405,6 +405,7 @@ const updatePartnerStatus = async (
       where: { id },
       data: {
         partnerStatus: payload.partnerStatus,
+        role: "PARTNER",
         updatedAt: new Date(),
       },
       select: {

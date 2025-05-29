@@ -40,7 +40,7 @@ router.get(
   userController.getPartner
 );
 
-// partner complete update
+// partner status update
 router.patch(
   "/partner/:id",
   validateRequest(userValidation.partnerStatusSchema),

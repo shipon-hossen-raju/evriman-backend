@@ -1,4 +1,4 @@
-import { UserStatus } from "@prisma/client";
+import { LoginType, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
@@ -10,17 +10,23 @@ import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 
 // user login
-const loginUser = async (payload: { email: string; password: string }) => {
+const loginUser = async (payload: { email: string; password: string, loginType: LoginType }) => {
   const userData = await prisma.user.findUnique({
     where: {
       email: payload.email,
+      ...(
+        payload.loginType === "PARTNER" && { partnerStatus: "APPROVED", isPartner: true, role: "PARTNER" }
+      ),
+      ...(
+        payload.loginType === "USER" && { isUser: true }
+      ),
     },
   });
 
   if (!userData?.email) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
-      "User not found! with this email " + payload.email
+      `${payload.loginType} not found! with this email ${payload.email}`
     );
   }
 
