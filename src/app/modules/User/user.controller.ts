@@ -78,6 +78,7 @@ const getUsers = catchAsync(async (req: Request, res: Response) => {
   const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
 
   const result = await userService.getUsersFromDb(filters, options);
+  
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

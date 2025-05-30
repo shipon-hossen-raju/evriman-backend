@@ -58,6 +58,7 @@ model User {
   loginType        LoginType  @default(USER)
   phoneNumber      String
   dob              DateTime?
+  age              Int        @default(0)
   idDocument       String?
   referralCodeUsed String?
   userPoint        Int        @default(0)
@@ -222,20 +223,28 @@ enum PaymentStatus {
   FAILED
   CANCELLED
   REFUNDED
+  EXPIRED
 }
 
 model Payment {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  amount        Float
-  transactionId String @unique
-  paymentMethod String
+  offerCodeId           String? @db.ObjectId
+  useUserPoint          Int?
+  userUsedReferCode     String?
+  currency              String
+  contactLimit          Int
+  amountPay             Float
+  amountPricing         Float
+  amountOfferCode       Float
+  amountUserPoint       Float?
+  stripePaymentIntentId String  @unique
 
   startDate DateTime
   endDate   DateTime
 
   userId             String            @db.ObjectId
-  user               User              @relation(fields: [userId], references: [id])
+  user               User?             @relation(fields: [userId], references: [id])
   subscriptionPlanId String?           @db.ObjectId
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
   pricingOptionId    String?           @db.ObjectId

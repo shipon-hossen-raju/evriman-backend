@@ -1,6 +1,9 @@
+import { PaymentStatus } from "@prisma/client";
 import { stripe } from "../../../config/stripe.config";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
+import emailSender from "../../../shared/emailSender";
+import { paymentConfirmHtml } from "./payment.mail";
 
 const createIntoDb = async (data: any) => {
   const transaction = await prisma.$transaction(async (prisma) => {
@@ -11,22 +14,6 @@ const createIntoDb = async (data: any) => {
   return transaction;
 };
 
-// create stripe payment intent
-const createStripePaymentIntent = async (
-  amount: number,
-  currency: string = "gbp",
-  metadata: Record<string, string> = {}
-) => {
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount,
-    currency,
-    automatic_payment_methods: { enabled: true },
-    metadata,
-  });
-
-  return paymentIntent;
-};
-
 const findUserAndPartner = async (
   userId: string,
   payload: {
@@ -35,83 +22,200 @@ const findUserAndPartner = async (
     offerCode?: string;
   }
 ) => {
-  const findSPI = await prisma.subscriptionPlan.findUnique({
-    where: { id: payload.subscriptionPlanId },
-    select: {
-      id: true,
-      contactLimit: true,
-    },
-  });
-  const findPricingPOI = await prisma.pricingOption.findUnique({
-    where: { id: payload.pricingOptionId },
-    select: {
-      eligibility: true,
-      amount: true,
-      id: true,
-      durationInMonths: true,
-    },
-  });
-  const findUser = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-    select: {
-      id: true,
-      role: true,
-      referralCodeUsed: true,
-      userPoint: true,
-      email: true,
-    },
-  });
-
-  let findOfferCode = null;
-
-  if (payload.offerCode) {
-    findOfferCode = await prisma.offerCode.findUnique({
-      where: {
-        code: payload.offerCode,
-        isActive: true,
-      },
+  return await prisma.$transaction(async (prisma) => {
+    const findSPI = await prisma.subscriptionPlan.findUnique({
+      where: { id: payload.subscriptionPlanId },
       select: {
-        code: true,
         id: true,
-        userType: true,
-        discountType: true,
-        discountValue: true,
+        contactLimit: true,
       },
     });
-  }
+    const findPricingPOI = await prisma.pricingOption.findUnique({
+      where: { id: payload.pricingOptionId },
+      select: {
+        eligibility: true,
+        amount: true,
+        id: true,
+        durationInMonths: true,
+      },
+    });
+    const findUser = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        role: true,
+        referralCodeUsed: true,
+        userPoint: true,
+        email: true,
+      },
+    });
 
-  // check data
-  if (!findSPI || !findPricingPOI) {
-    throw new ApiError(404, "Data Not Fount");
-  }
-  let amount: number = findPricingPOI.amount;
+    let findOfferCode = null;
 
-  if (findOfferCode) {
-    const discountType = findOfferCode.discountType;
-
-    if (discountType === "PERCENTAGE") {
-      amount = amount - amount * (findOfferCode.discountValue / 100);
-    } else if (discountType === "FIXED") {
-      amount = amount - findOfferCode.discountValue;
+    if (payload.offerCode) {
+      findOfferCode = await prisma.offerCode.findUnique({
+        where: {
+          code: payload.offerCode,
+          isActive: true,
+        },
+        select: {
+          code: true,
+          id: true,
+          userType: true,
+          discountType: true,
+          discountValue: true,
+        },
+      });
     }
 
-    if (amount < 0) amount = 0;
-  }
+    // check data
+    if (!findSPI || !findPricingPOI) {
+      throw new ApiError(404, "Data Not Fount");
+    }
+    let amount: number = findPricingPOI.amount;
 
-  const userPoint = findUser?.userPoint;
-  if (userPoint) amount = amount - amount * (userPoint / 100);
+    // if offer code
+    let offerCodeAmount = 0;
+    if (findOfferCode) {
+      const discountType = findOfferCode.discountType;
 
-  amount = Math.ceil(amount);
-  return {
-    subscriptionPlanId: findSPI.id,
-    pricingOptionId: findPricingPOI.id,
-    ...(findOfferCode?.id && { offerCodeId: findOfferCode.id }),
-    findUser,
-    amount,
-    userPoint: findUser?.userPoint,
-  };
+      if (discountType === "PERCENTAGE") {
+        // const discountValue = amount - amount * (findOfferCode.discountValue / 100);
+        offerCodeAmount = amount * (findOfferCode.discountValue / 100);
+        amount = amount - offerCodeAmount;
+      } else if (discountType === "FIXED") {
+        amount = amount - findOfferCode.discountValue;
+        offerCodeAmount = findOfferCode.discountValue;
+      }
+
+      if (amount < 0) amount = 0;
+    }
+
+    const userPoint = findUser?.userPoint;
+    let userUpdated;
+    let useUserPoint;
+    let amountUserPoint;
+    // if user point
+    if (userPoint) {
+      if (userPoint <= 100) {
+        // point calculate
+        const userPointAmount = amount * (userPoint / 100);
+        useUserPoint = userPoint;
+        amountUserPoint = userPointAmount;
+        amount = amount - userPointAmount;
+
+        // user update
+        userUpdated = await prisma.user.update({
+          where: {
+            id: findUser?.id,
+          },
+          data: {
+            userPoint: 0,
+          },
+          select: {
+            id: true,
+            userPoint: true,
+          },
+        });
+      } else if (userPoint >= 100) {
+        amount = amount - amount * (100 / 100);
+        useUserPoint = 100;
+        amountUserPoint = amount;
+
+        const remainingPoint = userPoint - 100;
+
+        // user update
+        userUpdated = await prisma.user.update({
+          where: {
+            id: findUser?.id,
+          },
+          data: {
+            userPoint: remainingPoint,
+          },
+          select: {
+            id: true,
+            userPoint: true,
+          },
+        });
+      }
+    }
+
+    amount = Number(amount.toFixed(2));
+
+    const metadata: Record<string, string> = {
+      subscriptionPlanId: String(findSPI.id),
+      pricingOptionId: String(findPricingPOI.id),
+      userId: findUser?.id ?? "",
+      ...(findOfferCode?.id && { offerCodeId: String(findOfferCode.id) }),
+      ...(typeof useUserPoint !== "undefined" && {
+        useUserPoint: String(useUserPoint),
+      }),
+      ...(typeof findUser?.referralCodeUsed !== "undefined" &&
+        findUser?.referralCodeUsed !== null && {
+          userUsedReferCode: String(findUser.referralCodeUsed),
+        }),
+    };
+
+    const paymentIntent = await createStripePaymentIntent(
+      amount,
+      "gbp",
+      metadata
+    );
+
+    // store subscription
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setMonth(
+      endDate.getMonth() + (findPricingPOI.durationInMonths || 0)
+    );
+
+    const storeDatabase = {
+      ...metadata,
+      currency: "gbp",
+      contactLimit: findSPI.contactLimit,
+      useUserPoint: useUserPoint,
+      amountPay: amount,
+      amountPricing: findPricingPOI.amount,
+      amountOfferCode: Number(offerCodeAmount.toFixed(2)),
+      amountUserPoint: Number(amountUserPoint?.toFixed(2)),
+      stripePaymentIntentId: paymentIntent.id,
+      startDate,
+      endDate,
+    };
+
+    const storedData = await prisma.payment.create({
+      data: { ...storeDatabase, status: "PENDING" },
+    });
+
+    return {
+      ...storeDatabase,
+      paymentIntent: {
+        id: paymentIntent.id,
+        client_secret: paymentIntent.client_secret,
+      },
+    };
+  });
+};
+
+// create stripe payment intent
+const createStripePaymentIntent = async (
+  amount: number,
+  currency: string = "gbp",
+  metadata: Record<string, string> = {}
+) => {
+  // Convert to smallest currency unit (e.g. pence)
+  const integerAmount = Math.round(amount * 100);
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: integerAmount,
+    currency,
+    automatic_payment_methods: { enabled: true },
+    metadata,
+  });
+
+  return paymentIntent;
 };
 
 const getListFromDb = async () => {
@@ -138,6 +242,80 @@ const updateIntoDb = async (id: string, data: any) => {
 
   return transaction;
 };
+const paymentConfirmIntoDb = async (payload: {
+  status: PaymentStatus;
+  stripePaymentIntentId: string;
+}) => {
+  if (!payload.stripePaymentIntentId) {
+    throw new ApiError(400, "stripePaymentIntentId is required!");
+  }
+
+  const findPayment = await prisma.payment.findUnique({
+    where: { stripePaymentIntentId: payload.stripePaymentIntentId },
+  });
+
+  if (!findPayment) throw new ApiError(404, "Payment Data not fount!");
+  console.log("findPayment ", findPayment);
+
+  const transaction = await prisma.$transaction(async (prisma) => {
+    const result = await prisma.payment.update({
+      where: { stripePaymentIntentId: payload.stripePaymentIntentId },
+      data: {
+        status: payload.status,
+      },
+    });
+
+    if (payload.status === "COMPLETED") {
+      // user update
+      const userUpdate = await prisma.user.update({
+        where: {
+          id: result.userId,
+        },
+        data: {
+          isPaid: true,
+        },
+      });
+
+      // find user
+      const findUser = await prisma.user.findUnique({
+        where: {
+          id: findPayment.userId,
+        },
+        select: {
+          id: true,
+          role: true,
+          referralCodeUsed: true,
+          userPoint: true,
+          email: true,
+        },
+      });
+
+      console.log("findUser ", findUser);
+
+      // send confirm mail
+      // const email = await emailSender(
+      //   updatedUser.email,
+      //   paymentConfirmHtml({
+      //     userName:
+      //   }),
+      //   `Partner Status Notification from ${config.site_name}`
+      // );
+    } else {
+      await prisma.user.update({
+        where: {
+          id: result.userId,
+        },
+        data: {
+          isPaid: false,
+        },
+      });
+    }
+
+    return result;
+  });
+
+  return transaction;
+};
 
 const deleteItemFromDb = async (id: string) => {
   const transaction = await prisma.$transaction(async (prisma) => {
@@ -151,6 +329,7 @@ const deleteItemFromDb = async (id: string) => {
 
   return transaction;
 };
+
 export const paymentService = {
   createIntoDb,
   getListFromDb,
@@ -160,4 +339,5 @@ export const paymentService = {
 
   createStripePaymentIntent,
   findUserAndPartner,
+  paymentConfirmIntoDb,
 };

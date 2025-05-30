@@ -1,5 +1,6 @@
 import { LoginType, Prisma, User, VerificationStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
+import { differenceInYears } from "date-fns";
 import { Request } from "express";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
@@ -55,7 +56,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
   // Generate a new OTP
   const { otp, otpExpires } = generateOTP();
 
-  // create user id  
+  // create user id
   const userId = await generateUniqueUserId();
 
   // const {password, ...restPayload} = payload;
@@ -93,6 +94,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     status: payload.status,
     address: payload.address,
     dob: payload.dob,
+    age: payload.dob ? differenceInYears(new Date(), payload.dob) : 0,
     idDocument: payload.idDocument,
     referralCodeUsed: payload.referralCodeUsed,
     termsAccepted: payload.termsAccepted,
@@ -143,7 +145,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     });
   } else {
     result = await prisma.user.create({
-      data: {...userData},
+      data: { ...userData },
       select: {
         id: true,
         userId: true,
@@ -211,6 +213,8 @@ const getUsersFromDb = async (
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterData } = params;
 
+  console.log("params ", params);
+
   const andConditions: Prisma.UserWhereInput[] = [];
 
   if (params.searchTerm) {
@@ -224,6 +228,9 @@ const getUsersFromDb = async (
     });
   }
 
+  console.log("searchTerm ", searchTerm);
+  console.dir(andConditions, { depth: Infinity });
+
   if (Object.keys(filterData).length > 0) {
     andConditions.push({
       AND: Object.keys(filterData).map((key) => ({
@@ -233,10 +240,13 @@ const getUsersFromDb = async (
       })),
     });
   }
+
   const whereConditions: Prisma.UserWhereInput = { AND: andConditions };
 
+  console.log("params 246 ", params);
+
   const result = await prisma.user.findMany({
-    where: whereConditions,
+    where: {...params},
     skip,
     orderBy:
       options.sortBy && options.sortOrder
@@ -254,6 +264,7 @@ const getUsersFromDb = async (
       phoneNumber: true,
       dob: true,
       address: true,
+      userImage: true,
       createdAt: true,
       updatedAt: true,
     },
