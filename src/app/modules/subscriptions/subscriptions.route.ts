@@ -17,6 +17,13 @@ router.post(
 // find all subscriptions
 router.get("/", auth(UserRole.ADMIN), subscriptionsController.findAllSubscriptions);
 
+// find all subscriptions publish
+router.get(
+  "/publish",
+  auth(),
+  subscriptionsController.findAllSubscriptionsPublish
+);
+
 // find single subscription
 router.get("/:id", auth(), subscriptionsController.findSingleSubscription);
 

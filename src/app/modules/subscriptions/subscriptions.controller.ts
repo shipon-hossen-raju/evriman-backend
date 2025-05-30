@@ -25,6 +25,17 @@ const findAllSubscriptions = catchAsync(async (req, res) => {
   });
 });
 
+// find all subscriptions
+const findAllSubscriptionsPublish = catchAsync(async (req, res) => {
+  const result = await subscriptionService.findAllSubscriptionsPublish();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Subscriptions retrieved successfully",
+    data: result,
+  });
+});
+
 // find single subscription
 const findSingleSubscription = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -67,5 +78,6 @@ export const subscriptionsController = {
   findAllSubscriptions,
   findSingleSubscription,
   updateSubscription,
-  deleteSubscription
+  deleteSubscription,
+  findAllSubscriptionsPublish,
 };

@@ -15,10 +15,18 @@ router.post(
 
 // create payment request
 router.post(
-   "/create-payment-request",
-   auth(),
+  "/create-payment-request",
+  auth(),
   validateRequest(paymentValidation.createPaymentRequest),
   paymentController.createPaymentRequest
+);
+
+// payment confirm
+router.put(
+  "/payment-confirm",
+  auth(),
+  validateRequest(paymentValidation.paymentConfirmSchema),
+  paymentController.paymentConfirm
 );
 
 router.get("/", auth(), paymentController.getPaymentList);

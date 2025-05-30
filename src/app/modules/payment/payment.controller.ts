@@ -54,6 +54,7 @@ const deletePayment = catchAsync(async (req, res) => {
   });
 });
 
+// create payment request
 const createPaymentRequest = catchAsync(async (req, res) => {
   const userId = req.user.id;
   const result = await paymentService.findUserAndPartner(userId, req.body);
@@ -66,6 +67,19 @@ const createPaymentRequest = catchAsync(async (req, res) => {
   });
 });
 
+// payment confirm
+const paymentConfirm = catchAsync(async (req, res) => {
+  const userId = req.user.id;
+  const result = await paymentService.paymentConfirmIntoDb(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment Confirm successfully",
+    data: result,
+  });
+});
+
 export const paymentController = {
   createPayment,
   getPaymentList,
@@ -73,4 +87,5 @@ export const paymentController = {
   updatePayment,
   deletePayment,
   createPaymentRequest,
+  paymentConfirm,
 };

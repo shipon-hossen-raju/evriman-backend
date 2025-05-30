@@ -27,6 +27,24 @@ const createSubscription = async (payload: SubscriptionPayload) => {
 };
 
 // find all subscriptions
+const findAllSubscriptionsPublish = async () => {
+  const result = await prisma.subscriptionPlan.findMany({
+    where: {
+      isActive: true
+    },
+    include: {
+      pricingOptions: true,
+    },
+  });
+
+  if (!result.length) {
+    throw new Error("Subscription not found");
+  }
+
+  return result;
+};
+
+// find all subscriptions
 const findAllSubscriptions = async () => {
   const result = await prisma.subscriptionPlan.findMany(
     {
@@ -122,4 +140,5 @@ export const subscriptionService = {
   findSingleSubscription,
   updateSubscription,
   deleteSubscription,
+  findAllSubscriptionsPublish,
 };

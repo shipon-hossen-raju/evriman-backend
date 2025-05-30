@@ -15,9 +15,14 @@ const createPaymentRequest = z.object({
   pricingOptionId: z.string(),
   offerCode: z.string().optional(),
 });
+const paymentConfirmSchema = z.object({
+  stripePaymentIntentId: z.string(),
+  status: z.string().optional(),
+});
 
 export const paymentValidation = {
   createSchema,
   updateSchema,
   createPaymentRequest,
+  paymentConfirmSchema
 };

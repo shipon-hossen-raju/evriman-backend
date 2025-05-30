@@ -10,16 +10,20 @@ import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 
 // user login
-const loginUser = async (payload: { email: string; password: string, loginType: LoginType }) => {
+const loginUser = async (payload: {
+  email: string;
+  password: string;
+  loginType: LoginType;
+}) => {
   const userData = await prisma.user.findUnique({
     where: {
       email: payload.email,
-      ...(
-        payload.loginType === "PARTNER" && { partnerStatus: "APPROVED", isPartner: true, role: "PARTNER" }
-      ),
-      ...(
-        payload.loginType === "USER" && { isUser: true }
-      ),
+      ...(payload.loginType === "PARTNER" && {
+        partnerStatus: "APPROVED",
+        isPartner: true,
+        role: "PARTNER",
+      }),
+      ...(payload.loginType === "USER" && { isUser: true }),
     },
   });
 
@@ -65,12 +69,20 @@ const getMyProfile = async (id: string) => {
       deathVerification: true,
       memoryClaimRequests: true,
       offerCodes: true,
+      Payment: true,
+    },
+  });
+
+  // find partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userProfile?.id,
     },
   });
 
   if (userProfile) {
     const { password, ...profileWithoutPassword } = userProfile as any;
-    return profileWithoutPassword;
+    return { ...profileWithoutPassword, partnerCode };
   }
 
   return userProfile;
