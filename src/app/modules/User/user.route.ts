@@ -68,6 +68,14 @@ router.put(
   userController.updateProfile
 );
 
+// profile image update
+router.put(
+  "/profile-image",
+  auth(),
+  fileUploader.uploadSingle,
+  userController.profileImageUpload
+);
+
 // *!update  user
 router.put("/:id", userController.updateUser);
 

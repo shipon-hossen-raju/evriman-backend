@@ -15,158 +15,161 @@ import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
-import { ApprovedMailTemp, RejectedMailTemp } from "./user.mail";
-import { generateUniquePartnerCode, generateUniqueUserId } from "./user.utils";
+import { ApprovedMailTemp, OtpHtml, RejectedMailTemp } from "./user.mail";
+import {
+  generateReferralCode,
+  generateUniquePartnerCode,
+  generateUniqueUserId,
+} from "./user.utils";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
-  const justEmail = await prisma.user.findFirst({
-    where: {
-      email: payload.email,
-    },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const justEmail = await tx.user.findFirst({
+      where: {
+        email: payload.email,
+      },
+    });
 
-  // Check if the user already exists in the database
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      email: payload.email,
+    // Check if the user already exists in the database
+    const existingUser = await tx.user.findFirst({
+      where: {
+        email: payload.email,
+        ...(payload.loginType === "PARTNER" && { isPartner: true }),
+        ...(payload.loginType === "USER" && { isUser: true }),
+      },
+    });
+
+    if (existingUser) {
+      if (existingUser.email === payload.email) {
+        throw new ApiError(
+          400,
+          `User with this email ${payload.email} already exists`
+        );
+      }
+    }
+
+    const hashedPassword: string = await bcrypt.hash(
+      payload.password,
+      Number(config.bcrypt_salt_rounds)
+    );
+
+    // Generate a new OTP
+    const { otp, otpExpires } = generateOTP();
+
+    // Ensure password is always a string
+    let password: string;
+    if (payload.isNewData === true) {
+      password = hashedPassword;
+    } else if (justEmail?.password) {
+      password = justEmail.password;
+    } else {
+      throw new ApiError(400, "Password is required for user creation");
+    }
+
+    const { isNewData, ...restPayload } = payload;
+    const {
+      referralCodeUsed,
+      partnerAgreement,
+      updatedAt,
+      partnerType,
+      businessName,
+      ...restPayloadFiltered
+    } = restPayload;
+
+    const userData = {
+      ...restPayloadFiltered,
+      password,
+      otp,
+      expirationOtp: otpExpires,
+      loginType: payload.loginType as LoginType,
+      phoneNumber: payload.phoneNumber,
+      fullName: payload.fullName,
+      role: payload.role,
+      status: payload.status,
+      address: payload.address,
+      dob: payload.dob,
+      age: payload.dob ? differenceInYears(new Date(), payload.dob) : 0,
+      idDocument: payload.idDocument,
+      referralCodeUsed: payload.referralCodeUsed,
+      termsAccepted: payload.termsAccepted,
+      privacyAccepted: payload.privacyAccepted,
+      isVerified: payload.isVerified,
+      isDeceased: payload.isDeceased,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+
+      // partner information
+      partnerAgreement: payload?.partnerAgreement || null,
+      partnerType: payload?.partnerType || null,
+      businessName: payload?.businessName || null,
+
       ...(payload.loginType === "PARTNER" && { isPartner: true }),
       ...(payload.loginType === "USER" && { isUser: true }),
-    },
-  });
+    };
 
-  if (existingUser) {
-    if (existingUser.email === payload.email) {
-      throw new ApiError(
-        400,
-        `User with this email ${payload.email} already exists`
-      );
+    const env = config.env === "development" ? true : false;
+
+    // update user data if user already exists
+    let result;
+    let defaultDataShow = {
+      id: true,
+      userId: true,
+      referralCode: true,
+      email: true,
+      role: true,
+      fullName: true,
+      loginType: true,
+      createdAt: true,
+      updatedAt: true,
+      otp: env,
+    };
+    if (justEmail?.id && justEmail?.email) {
+      result = await tx.user.update({
+        where: {
+          email: justEmail.email,
+          id: justEmail.id,
+        },
+        data: {
+          ...userData,
+          otp,
+          expirationOtp: otpExpires,
+          updatedAt: new Date(),
+        },
+        select: defaultDataShow,
+      });
+    } else {
+      // create user id
+      const userId = await generateUniqueUserId();
+      const referralCode = await generateReferralCode();
+
+      result = await tx.user.create({
+        data: { ...userData, userId: userId.toString(), referralCode },
+        select: defaultDataShow,
+      });
     }
-  }
 
-  const hashedPassword: string = await bcrypt.hash(
-    payload.password,
-    Number(config.bcrypt_salt_rounds)
-  );
-
-  // Generate a new OTP
-  const { otp, otpExpires } = generateOTP();
-
-  // create user id
-  const userId = await generateUniqueUserId();
-
-  // const {password, ...restPayload} = payload;
-
-  // Ensure password is always a string
-  let password: string;
-  if (payload.isNewData === true) {
-    password = hashedPassword;
-  } else if (justEmail?.password) {
-    password = justEmail.password;
-  } else {
-    throw new ApiError(400, "Password is required for user creation");
-  }
-
-  const { isNewData, ...restPayload } = payload;
-  const {
-    referralCodeUsed,
-    partnerAgreement,
-    updatedAt,
-    partnerType,
-    businessName,
-    ...restPayloadFiltered
-  } = restPayload;
-
-  const userData = {
-    ...restPayloadFiltered,
-    userId: userId.toString(),
-    password,
-    otp,
-    expirationOtp: otpExpires,
-    loginType: payload.loginType as LoginType,
-    phoneNumber: payload.phoneNumber,
-    fullName: payload.fullName,
-    role: payload.role,
-    status: payload.status,
-    address: payload.address,
-    dob: payload.dob,
-    age: payload.dob ? differenceInYears(new Date(), payload.dob) : 0,
-    idDocument: payload.idDocument,
-    referralCodeUsed: payload.referralCodeUsed,
-    termsAccepted: payload.termsAccepted,
-    privacyAccepted: payload.privacyAccepted,
-    isVerified: payload.isVerified,
-    isDeceased: payload.isDeceased,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-
-    // partner information
-    partnerAgreement: payload?.partnerAgreement || null,
-    partnerType: payload?.partnerType || null,
-    businessName: payload?.businessName || null,
-
-    ...(payload.loginType === "PARTNER" && { isPartner: true }),
-    ...(payload.loginType === "USER" && { isUser: true }),
-  };
-
-  const env = config.env === "development" ? true : false;
-
-  // update user data if user already exists
-  let result;
-  if (justEmail?.id && justEmail?.email) {
-    result = await prisma.user.update({
-      where: {
-        email: justEmail.email,
-        id: justEmail.id,
+    const token = jwtHelpers.generateToken(
+      {
+        id: result?.id,
+        email: result?.email,
+        role: result?.role,
+        LoginType: result?.loginType,
+        name: result?.fullName,
       },
-      data: {
-        ...userData,
-        otp,
-        expirationOtp: otpExpires,
-        updatedAt: new Date(),
-      },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        role: true,
-        fullName: true,
-        loginType: true,
-        createdAt: true,
-        updatedAt: true,
-        otp: env,
-      },
-    });
-  } else {
-    result = await prisma.user.create({
-      data: { ...userData },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        role: true,
-        loginType: true,
-        fullName: true,
-        createdAt: true,
-        updatedAt: true,
-        otp: env,
-      },
-    });
-  }
+      config.jwt.jwt_secret as Secret,
+      config.jwt.expires_in as string
+    );
 
-  const token = jwtHelpers.generateToken(
-    {
-      id: result?.id,
-      email: result?.email,
-      role: result?.role,
-      LoginType: result?.loginType,
-      name: result?.fullName,
-    },
-    config.jwt.jwt_secret as Secret,
-    config.jwt.expires_in as string
-  );
+    // send email to user otp
+    await emailSender(
+      result.email,
+      OtpHtml(otp),
+      `Welcome to our service! Your OTP is: ${result.otp}`
+    );
 
-  return { result, token, otp };
+    return { result, token, otp };
+  });
 };
 
 // partner complete profile
@@ -301,7 +304,7 @@ const getUsersFromDb = async (
     contactCondition.push({
       id: {
         in: filteredUserIds,
-      }
+      },
     });
 
     const whereConditionsContact: Prisma.UserWhereInput = {
@@ -310,7 +313,7 @@ const getUsersFromDb = async (
 
     console.dir(whereConditionsContact, { depth: Infinity });
 
-     result = await prisma.user.findMany({
+    result = await prisma.user.findMany({
       where: whereConditionsContact,
       select: {
         ...defaultShowData,
@@ -319,7 +322,7 @@ const getUsersFromDb = async (
             id: true,
             name: true,
             photoUrl: true,
-            relationship: true
+            relationship: true,
           },
         },
         _count: {
@@ -333,7 +336,6 @@ const getUsersFromDb = async (
         createdAt: "desc",
       },
     });
-
   } else {
     result = await prisma.user.findMany({
       where: whereConditions,
@@ -356,8 +358,6 @@ const getUsersFromDb = async (
       },
     });
   }
-
-   
 
   const total = await prisma.user.count({
     where: whereConditions,
@@ -614,16 +614,16 @@ const updateProfile = async (req: Request) => {
   if (file) {
     image = (await fileUploader.uploadToDigitalOcean(file)).Location;
   }
-  if (stringData) {
-    parseData = JSON.parse(stringData);
-  }
+  // if (stringData) {
+  //   parseData = JSON.parse(stringData);
+  // }
   const result = await prisma.user.update({
     where: {
       id: existingUser.id, // Ensure `existingUser.id` is valid and exists
     },
     data: {
-      fullName: parseData.fullName || existingUser.fullName,
-      email: parseData.email || existingUser.email,
+      // fullName: parseData.fullName || existingUser.fullName,
+      // email: parseData.email || existingUser.email,
       // profileImage: image || existingUser.profileImage,
       updatedAt: new Date(), // Assuming your model has an `updatedAt` field
     },
@@ -632,6 +632,53 @@ const updateProfile = async (req: Request) => {
       fullName: true,
       email: true,
       // profileImage: true,
+    },
+  });
+
+  return result;
+};
+
+// update profile by user won profile uisng token or email and id
+const profileImageUpload = async (req: Request) => {
+  const file = req.file;
+
+  let image;
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      id: req.user.id,
+    },
+  });
+
+  if (!existingUser) {
+    throw new ApiError(404, "User not found");
+  }
+  if (file) {
+    image = (await fileUploader.uploadToDigitalOcean(file)).Location;
+  }
+  const result = await prisma.user.update({
+    where: {
+      id: existingUser.id,
+    },
+
+    data: {
+      ...(existingUser.role === "USER" && {
+        userImage: image || existingUser.userImage,
+      }),
+      ...(existingUser.role === "PARTNER" && {
+        partnerImage: image || existingUser.partnerImage,
+      }),
+      updatedAt: new Date(),
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      ...(existingUser.role === "USER" && {
+        userImage: true,
+      }),
+      ...(existingUser.role === "PARTNER" && {
+        partnerImage: true,
+      }),
     },
   });
 
@@ -682,4 +729,5 @@ export const userService = {
   updateUserIntoDb,
   getPartner,
   updatePartnerStatus,
+  profileImageUpload,
 };

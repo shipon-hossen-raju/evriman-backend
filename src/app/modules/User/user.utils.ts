@@ -47,3 +47,23 @@ export async function generateUniqueUserId(): Promise<string> {
 
   return userId;
 }
+export async function generateReferralCode(): Promise<string> {
+  let unique = false;
+  let referralCode = "";
+
+  while (!unique) {
+    referralCode = await generateCode();
+    const exists = await prisma.user.findUnique({
+      where: { referralCode },
+      select: {
+        referralCode: true,
+      },
+    });
+
+    if (!exists) {
+      unique = true;
+    }
+  }
+
+  return referralCode;
+}

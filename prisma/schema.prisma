@@ -43,25 +43,27 @@ enum PartnerType {
 }
 
 model User {
-  id               String     @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String     @unique
-  fullName         String
-  email            String     @unique
-  otp              Int?
-  expirationOtp    DateTime?
-  password         String
-  address          String?
-  role             UserRole   @default(USER)
-  status           UserStatus @default(ACTIVE)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  loginType        LoginType  @default(USER)
-  phoneNumber      String
-  dob              DateTime?
-  age              Int        @default(0)
-  idDocument       String?
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String     @unique
+  fullName      String
+  email         String     @unique
+  otp           Int?
+  expirationOtp DateTime?
+  password      String
+  address       String?
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  loginType     LoginType  @default(USER)
+  phoneNumber   String
+  dob           DateTime?
+  age           Int        @default(0)
+  idDocument    String?
+
   referralCodeUsed String?
-  userPoint        Int        @default(0)
+  referralCode     String  @unique
+  userPoint        Int     @default(0)
 
   termsAccepted   Boolean @default(false)
   privacyAccepted Boolean @default(false)
