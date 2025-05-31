@@ -2,8 +2,7 @@ import { PaymentStatus } from "@prisma/client";
 import { stripe } from "../../../config/stripe.config";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
-import emailSender from "../../../shared/emailSender";
-import { paymentConfirmHtml } from "./payment.mail";
+import { dateOutput } from "../../../utils/date";
 
 const createIntoDb = async (data: any) => {
   const transaction = await prisma.$transaction(async (prisma) => {
@@ -14,7 +13,7 @@ const createIntoDb = async (data: any) => {
   return transaction;
 };
 
-const findUserAndPartner = async (
+const createPaymentRequest = async (
   userId: string,
   payload: {
     subscriptionPlanId: string;
@@ -53,7 +52,6 @@ const findUserAndPartner = async (
     });
 
     let findOfferCode = null;
-
     if (payload.offerCode) {
       findOfferCode = await prisma.offerCode.findUnique({
         where: {
@@ -74,6 +72,9 @@ const findUserAndPartner = async (
     if (!findSPI || !findPricingPOI) {
       throw new ApiError(404, "Data Not Fount");
     }
+    if (!findOfferCode && payload.offerCode) {
+      throw new ApiError(404, "Offer Data Not Fount");
+    }
     let amount: number = findPricingPOI.amount;
 
     // if offer code
@@ -82,7 +83,6 @@ const findUserAndPartner = async (
       const discountType = findOfferCode.discountType;
 
       if (discountType === "PERCENTAGE") {
-        // const discountValue = amount - amount * (findOfferCode.discountValue / 100);
         offerCodeAmount = amount * (findOfferCode.discountValue / 100);
         amount = amount - offerCodeAmount;
       } else if (discountType === "FIXED") {
@@ -158,11 +158,11 @@ const findUserAndPartner = async (
         }),
     };
 
-    const paymentIntent = await createStripePaymentIntent(
-      amount,
-      "gbp",
-      metadata
-    );
+    // const paymentIntent = await createStripePaymentIntent(
+    //   amount,
+    //   "gbp",
+    //   metadata
+    // );
 
     // store subscription
     const startDate = new Date();
@@ -180,7 +180,7 @@ const findUserAndPartner = async (
       amountPricing: findPricingPOI.amount,
       amountOfferCode: Number(offerCodeAmount.toFixed(2)),
       amountUserPoint: Number(amountUserPoint?.toFixed(2)),
-      stripePaymentIntentId: paymentIntent.id,
+      stripePaymentIntentId: "",
       startDate,
       endDate,
     };
@@ -190,11 +190,9 @@ const findUserAndPartner = async (
     });
 
     return {
-      ...storeDatabase,
-      paymentIntent: {
-        id: paymentIntent.id,
-        client_secret: paymentIntent.client_secret,
-      },
+      ...storedData,
+      startDate: dateOutput(storedData.startDate),
+      endDate: dateOutput(storedData.endDate),
     };
   });
 };
@@ -243,15 +241,16 @@ const updateIntoDb = async (id: string, data: any) => {
   return transaction;
 };
 const paymentConfirmIntoDb = async (payload: {
+  id: string;
   status: PaymentStatus;
-  stripePaymentIntentId: string;
+  subscriptionPlanId: string;
 }) => {
-  if (!payload.stripePaymentIntentId) {
-    throw new ApiError(400, "stripePaymentIntentId is required!");
+  if (!payload.id) {
+    throw new ApiError(400, "id is required!");
   }
 
   const findPayment = await prisma.payment.findUnique({
-    where: { stripePaymentIntentId: payload.stripePaymentIntentId },
+    where: { id: payload.id },
   });
 
   if (!findPayment) throw new ApiError(404, "Payment Data not fount!");
@@ -259,7 +258,7 @@ const paymentConfirmIntoDb = async (payload: {
 
   const transaction = await prisma.$transaction(async (prisma) => {
     const result = await prisma.payment.update({
-      where: { stripePaymentIntentId: payload.stripePaymentIntentId },
+      where: { id: payload.id },
       data: {
         status: payload.status,
       },
@@ -338,6 +337,6 @@ export const paymentService = {
   deleteItemFromDb,
 
   createStripePaymentIntent,
-  findUserAndPartner,
+  createPaymentRequest,
   paymentConfirmIntoDb,
 };

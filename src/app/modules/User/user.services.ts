@@ -302,6 +302,7 @@ const getUsersFromDb = async (
     updatedAt: true,
     isDeceased: true,
     userId: true,
+    referralCode: true,
 
     isPaid: true,
     age: true,

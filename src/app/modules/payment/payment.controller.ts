@@ -57,12 +57,12 @@ const deletePayment = catchAsync(async (req, res) => {
 // create payment request
 const createPaymentRequest = catchAsync(async (req, res) => {
   const userId = req.user.id;
-  const result = await paymentService.findUserAndPartner(userId, req.body);
+  const result = await paymentService.createPaymentRequest(userId, req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Stripe Payment Intent created successfully",
+    message: "Payment request created successfully",
     data: result,
   });
 });

@@ -258,7 +258,7 @@ model Payment {
   amountPricing         Float
   amountOfferCode       Float
   amountUserPoint       Float?
-  stripePaymentIntentId String  @unique
+  stripePaymentIntentId String?
 
   startDate DateTime
   endDate   DateTime
