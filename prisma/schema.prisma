@@ -65,6 +65,11 @@ model User {
   referralCode     String  @unique
   userPoint        Int     @default(0)
 
+  // Relation: Users who used this user's referral code
+  referredUsers UserReferral[] @relation("ReferrerToReferred")
+  // Relation: This user used which referral code
+  usedReferral  UserReferral[] @relation("ReferredToReferrer")
+
   termsAccepted   Boolean @default(false)
   privacyAccepted Boolean @default(false)
   isVerified      Boolean @default(false)
@@ -76,6 +81,7 @@ model User {
   offerCodes            UserOfferCode[]
   UserDynamicFieldValue UserDynamicFieldValue[]
   ContactList           ContactList[]
+  contactLimit          Int                     @default(1)
   memories              UserMemory[]            @relation("UserMemories")
   deathVerification     DeathVerification[]
   memoryClaimRequests   MemoryClaimRequest[]
@@ -160,6 +166,18 @@ model MemoryClaimRequest {
 // ===================== Global Schema End ===============
 // =======================================================
 
+// ===================== UserReferral Model =====================
+model UserReferral {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  referrer   User     @relation("ReferrerToReferred", fields: [referrerId], references: [id])
+  referrerId String   @db.ObjectId
+  referred   User     @relation("ReferredToReferrer", fields: [referredId], references: [id])
+  referredId String   @db.ObjectId
+  createdAt  DateTime @default(now())
+
+  @@map("user_referrals")
+}
+
 // =======================================================
 // ===================== User Start ======================
 // =======================================================
@@ -204,6 +222,7 @@ model UserMemory {
   contactIds String[] @db.ObjectId
   tagId      String   @db.ObjectId
   tag        Tags     @relation("TagsToUserMemories", fields: [tagId], references: [id])
+  publish    DateTime @default(now())
 
   contacts UserMemoryContact[]
 

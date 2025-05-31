@@ -77,6 +77,18 @@ const getUsers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// view profile
+const viewProfile = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.viewProfile(req.params.profileId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users retrieve successfully!",
+    data: result,
+  });
+});
+
 // get all user form db
 const updateProfile = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
@@ -141,4 +153,5 @@ export const userController = {
   getPartner,
   updatePartnerStatus,
   profileImageUpload,
+  viewProfile,
 };

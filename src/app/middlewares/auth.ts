@@ -32,8 +32,9 @@ const auth = (...roles: string[]) => {
           id: id,
         },
       });
+
       if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, "User not found!");
+        throw new ApiError(httpStatus.NOT_FOUND, "Authorized user not found!");
       }
 
       if (user.status === "BLOCKED") {

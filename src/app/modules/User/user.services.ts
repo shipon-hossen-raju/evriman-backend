@@ -1,4 +1,10 @@
-import { LoginType, Prisma, User, VerificationStatus } from "@prisma/client";
+import {
+  LoginType,
+  Prisma,
+  User,
+  UserRole,
+  VerificationStatus,
+} from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { differenceInYears } from "date-fns";
 import { Request } from "express";
@@ -30,6 +36,19 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
         email: payload.email,
       },
     });
+
+    // check referral
+    if (payload.referralCodeUsed) {
+      const checkReferral = await tx.user.findFirst({
+        where: {
+          referralCode: payload?.referralCodeUsed,
+        },
+      });
+
+      if (!checkReferral) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Not Fount Referral Code!")
+      }
+    }
 
     // Check if the user already exists in the database
     const existingUser = await tx.user.findFirst({
@@ -91,7 +110,6 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       dob: payload.dob,
       age: payload.dob ? differenceInYears(new Date(), payload.dob) : 0,
       idDocument: payload.idDocument,
-      referralCodeUsed: payload.referralCodeUsed,
       termsAccepted: payload.termsAccepted,
       privacyAccepted: payload.privacyAccepted,
       isVerified: payload.isVerified,
@@ -123,6 +141,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       createdAt: true,
       updatedAt: true,
       otp: env,
+      age: true,
     };
     if (justEmail?.id && justEmail?.email) {
       result = await tx.user.update({
@@ -143,8 +162,27 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       const userId = await generateUniqueUserId();
       const referralCode = await generateReferralCode();
 
+      // increase referral
+      if (payload.referralCodeUsed) {
+        await prisma.user.update({
+          where: {
+            referralCode: payload.referralCodeUsed,
+          },
+          data: {
+            userPoint: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
       result = await tx.user.create({
-        data: { ...userData, userId: userId.toString(), referralCode },
+        data: {
+          ...userData,
+          userId: userId.toString(),
+          referralCode,
+          referralCodeUsed: payload.referralCodeUsed,
+        },
         select: defaultDataShow,
       });
     }
@@ -375,6 +413,49 @@ const getUsersFromDb = async (
     },
     data: result,
   };
+};
+
+// view profile
+const viewProfile = async (profileId: string) => {
+  console.log("profileId ", profileId )
+  const user = await prisma.user.findUnique({
+    where: { id: profileId, role: "USER" },
+    select: {
+      id: true,
+      userId: true,
+      fullName: true,
+      email: true,
+      role: true,
+      phoneNumber: true,
+      dob: true,
+      address: true,
+      referralCode: true,
+      userImage: true,
+      createdAt: true,
+      updatedAt: true,
+      isPartner: true,
+      isUser: true,
+      status: true,
+      age: true,
+      isDeceased: true,
+      isVerified: true,
+      partnerStatus: true,
+      ContactList: true,
+      _count: {
+        select: {
+          ContactList: true,
+        },
+      },
+    },
+  });
+
+  console.log("user ", user);
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return user;
 };
 
 // reterive all partner from the database also searching anf filtering
@@ -638,7 +719,7 @@ const updateProfile = async (req: Request) => {
   return result;
 };
 
-// update profile by user won profile uisng token or email and id
+// update profile by user won profile using token or email and id
 const profileImageUpload = async (req: Request) => {
   const file = req.file;
 
@@ -730,4 +811,5 @@ export const userService = {
   getPartner,
   updatePartnerStatus,
   profileImageUpload,
+  viewProfile,
 };

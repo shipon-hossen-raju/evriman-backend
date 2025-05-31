@@ -55,6 +55,9 @@ router.patch(
   userController.updatePartnerStatus
 );
 
+// view profile
+router.get("/user-view-profile/:profileId", auth(), userController.viewProfile);
+
 // *!get all  user
 router.get("/all", userController.getUsers);
 
