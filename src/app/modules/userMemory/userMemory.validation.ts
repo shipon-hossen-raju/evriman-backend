@@ -4,10 +4,14 @@ import { z } from "zod";
 export const createUserMemorySchema = z.object({
   content: z.string().min(1, "Content is required"),
   files: z.array(z.string().url("File is required")),
-  status: z.boolean().default(false),
+  isPublish: z.boolean().default(false),
   tagId: z.string().min(1, "TagId is required"),
   userId: z.string().min(1, "User ID is required"),
-  contactIds: z.array(z.string().min(1, "Contact id required")).optional().default([]),
+  contactIds: z
+    .array(z.string().min(1, "Contact id required"))
+    .optional()
+    .default([]),
+  publish: z.string().optional()
 });
 
 // Update Memory Schema
@@ -18,5 +22,6 @@ export const updateUserMemorySchema = z.object({
   tagId: z.string().min(1, "TagId is required").optional(),
   tags: z.string().min(1, "Tag is required").optional(),
   contactIds: z.array(z.string()).optional().default([]),
-  status: z.boolean().optional(),
+  isPublish: z.boolean().optional(),
+  publish: z.string().optional(),
 });

@@ -1,10 +1,4 @@
-import {
-  LoginType,
-  Prisma,
-  User,
-  UserRole,
-  VerificationStatus,
-} from "@prisma/client";
+import { LoginType, Prisma, User, VerificationStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { differenceInYears } from "date-fns";
 import { Request } from "express";
@@ -46,7 +40,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       });
 
       if (!checkReferral) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Not Fount Referral Code!")
+        throw new ApiError(httpStatus.NOT_FOUND, "Not Fount Referral Code!");
       }
     }
 
@@ -307,6 +301,7 @@ const getUsersFromDb = async (
     createdAt: true,
     updatedAt: true,
     isDeceased: true,
+
     isPaid: true,
     age: true,
   };
@@ -417,7 +412,6 @@ const getUsersFromDb = async (
 
 // view profile
 const viewProfile = async (profileId: string) => {
-  console.log("profileId ", profileId )
   const user = await prisma.user.findUnique({
     where: { id: profileId, role: "USER" },
     select: {
@@ -448,8 +442,6 @@ const viewProfile = async (profileId: string) => {
       },
     },
   });
-
-  console.log("user ", user);
 
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");

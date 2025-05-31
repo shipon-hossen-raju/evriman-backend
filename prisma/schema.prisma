@@ -215,7 +215,6 @@ model UserMemory {
 
   content String
   files   String[] // List of media file URLs (images, audio, video)
-  status  Boolean
 
   userId     String   @db.ObjectId
   user       User     @relation("UserMemories", fields: [userId], references: [id])
@@ -229,7 +228,7 @@ model UserMemory {
   contactListId String?      @db.ObjectId
   ContactList   ContactList? @relation("ContactListToUserMemories", fields: [contactListId], references: [id])
 
-  isContactList Boolean @default(false)
+  isPublish Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
