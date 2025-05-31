@@ -56,7 +56,7 @@ router.patch(
 );
 
 // *!get all  user
-router.get("/", userController.getUsers);
+router.get("/all", userController.getUsers);
 
 // *!profile user
 router.put(

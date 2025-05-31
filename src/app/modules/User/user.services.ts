@@ -26,8 +26,6 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     },
   });
 
-  console.log("justEmail ", justEmail);
-
   // Check if the user already exists in the database
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -36,8 +34,6 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       ...(payload.loginType === "USER" && { isUser: true }),
     },
   });
-
-  console.log("existingUser ", existingUser);
 
   if (existingUser) {
     if (existingUser.email === payload.email) {
@@ -112,8 +108,6 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     ...(payload.loginType === "PARTNER" && { isPartner: true }),
     ...(payload.loginType === "USER" && { isUser: true }),
   };
-
-  console.log("userData ", userData);
 
   const env = config.env === "development" ? true : false;
 
@@ -211,64 +205,160 @@ const getUsersFromDb = async (
   options: IPaginationOptions
 ) => {
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
-  const { searchTerm, ...filterData } = params;
-
-  console.log("params ", params);
+  const { searchTerm, contacts, ...filterData } = params;
 
   const andConditions: Prisma.UserWhereInput[] = [];
 
   if (params.searchTerm) {
+    // Only include string fields for 'contains' search
+    const stringFields = [
+      "email",
+      "fullName",
+      "address",
+      "phoneNumber",
+      "userId",
+      "role",
+      "status",
+      "businessName",
+    ]; // adjust as per your schema
     andConditions.push({
-      OR: userSearchAbleFields.map((field) => ({
-        [field]: {
-          contains: params.searchTerm,
-          mode: "insensitive",
-        },
-      })),
+      OR: userSearchAbleFields
+        .filter((field) => stringFields.includes(field))
+        .map((field) => ({
+          [field]: {
+            contains: params.searchTerm,
+            mode: "insensitive",
+          },
+        })),
     });
   }
 
-  console.log("searchTerm ", searchTerm);
-  console.dir(andConditions, { depth: Infinity });
-
   if (Object.keys(filterData).length > 0) {
     andConditions.push({
-      AND: Object.keys(filterData).map((key) => ({
-        [key]: {
-          equals: (filterData as any)[key],
-        },
-      })),
+      AND: Object.keys(filterData).map((key) => {
+        let value = (filterData as any)[key];
+        // Convert string "true"/"false" to boolean for boolean fields
+        if (value === "true") value = true;
+        if (value === "false") value = false;
+        return {
+          [key]: {
+            equals: value,
+          },
+        };
+      }),
     });
   }
 
   const whereConditions: Prisma.UserWhereInput = { AND: andConditions };
 
-  console.log("params 246 ", params);
+  console.dir(andConditions, { depth: Infinity });
 
-  const result = await prisma.user.findMany({
-    where: {...params},
-    skip,
-    orderBy:
-      options.sortBy && options.sortOrder
-        ? {
-            [options.sortBy]: options.sortOrder,
-          }
-        : {
-            createdAt: "desc",
+  let result;
+  const defaultShowData = {
+    id: true,
+    fullName: true,
+    email: true,
+    role: true,
+    phoneNumber: true,
+    dob: true,
+    address: true,
+    userImage: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeceased: true,
+    isPaid: true,
+    age: true,
+  };
+  // contact list count
+  if (params.contacts) {
+    const contactCount = Number(params.contacts);
+    if (Array.isArray(params.contacts) && params.contacts.length > 0) {
+      andConditions.push({
+        OR: [
+          {
+            userId: {
+              in: params.contacts,
+            },
           },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      role: true,
-      phoneNumber: true,
-      dob: true,
-      address: true,
-      userImage: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+        ],
+      });
+    }
+
+    const usersWithDesiredContactCount = await prisma.user.findMany({
+      where: whereConditions,
+      include: {
+        _count: {
+          select: { ContactList: true },
+        },
+      },
+    });
+    const filteredUserIds = usersWithDesiredContactCount
+      .filter((user) => user._count.ContactList === contactCount)
+      .map((user) => user.id);
+
+    // whereConditions.push
+    const contactCondition = andConditions;
+    contactCondition.push({
+      id: {
+        in: filteredUserIds,
+      }
+    });
+
+    const whereConditionsContact: Prisma.UserWhereInput = {
+      AND: contactCondition,
+    };
+
+    console.dir(whereConditionsContact, { depth: Infinity });
+
+     result = await prisma.user.findMany({
+      where: whereConditionsContact,
+      select: {
+        ...defaultShowData,
+        ContactList: {
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true,
+            relationship: true
+          },
+        },
+        _count: {
+          select: {
+            ContactList: true,
+          },
+        },
+      },
+      skip,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+  } else {
+    result = await prisma.user.findMany({
+      where: whereConditions,
+      skip,
+      orderBy:
+        options.sortBy && options.sortOrder
+          ? {
+              [options.sortBy]: options.sortOrder,
+            }
+          : {
+              createdAt: "desc",
+            },
+      select: {
+        ...defaultShowData,
+        // Count the number of ContactList entries for each user
+        _count: {
+          select: { ContactList: true },
+        },
+        // ContactList: true,
+      },
+    });
+  }
+
+   
+
   const total = await prisma.user.count({
     where: whereConditions,
   });
@@ -276,6 +366,7 @@ const getUsersFromDb = async (
   if (!result || result.length === 0) {
     throw new ApiError(404, "No active users found");
   }
+
   return {
     meta: {
       page,
@@ -354,8 +445,12 @@ const getAllPartnerFromDb = async (
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      _count: {
+        select: { ContactList: true },
+      },
     },
   });
+
   const total = await prisma.user.count({
     where: whereConditions,
   });
@@ -451,8 +546,6 @@ const updatePartnerStatus = async (
         id: true,
       },
     });
-
-    console.log("findPartner ", findPartner);
 
     if (!findPartner) {
       await prisma.partnerCode.create({
