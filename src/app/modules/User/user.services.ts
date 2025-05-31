@@ -301,6 +301,7 @@ const getUsersFromDb = async (
     createdAt: true,
     updatedAt: true,
     isDeceased: true,
+    userId: true,
 
     isPaid: true,
     age: true,
@@ -350,6 +351,7 @@ const getUsersFromDb = async (
       where: whereConditionsContact,
       select: {
         ...defaultShowData,
+        userId: true,
         ContactList: {
           select: {
             id: true,
