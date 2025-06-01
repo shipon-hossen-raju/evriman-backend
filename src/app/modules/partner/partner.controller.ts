@@ -45,6 +45,17 @@ const usersLinked = catchAsync(async (req, res) => {
   });
 });
 
+const myWallet = catchAsync(async (req, res) => {
+  const result = await partnerService.myWalletIntoDb(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "My wallet retrieved successfully",
+    data: result,
+  });
+});
+
 const viewProfile = catchAsync(async (req, res) => {
   const result = await partnerService.viewProfileIntoDb(req.user.id);
 
@@ -52,6 +63,17 @@ const viewProfile = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "Users Linked retrieved successfully",
+    data: result,
+  });
+});
+
+const activePlans = catchAsync(async (req, res) => {
+  const result = await partnerService.activePlansIntoDb(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Active plans retrieved successfully",
     data: result,
   });
 });
@@ -95,4 +117,6 @@ export const partnerController = {
   getPartnerProfile,
   usersLinked,
   viewProfile,
+  myWallet,
+  activePlans,
 };

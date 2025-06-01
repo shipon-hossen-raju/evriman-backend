@@ -118,6 +118,53 @@ const viewProfileIntoDb = async (profileId: string) => {
   return { user, paymentHistory };
 };
 
+// active plans
+const activePlansIntoDb = async (id: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id: id,
+    },
+    select: {
+      id: true
+    },
+  });
+  
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  const users = await prisma.user.findMany({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      userImage: true,
+      partnerImage: true,
+      createdAt: true,
+    },
+  });
+
+  const usersCount = await prisma.user.count({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+  });
+
+  if (!users) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return { users, usersCount };
+};
+
 const getPartnerProfileIntoDb = async (id: string) => {
   const userData = await prisma.user.findUnique({
     where: {
@@ -147,6 +194,13 @@ const getPartnerProfileIntoDb = async (id: string) => {
     },
   });
 
+  // user refer linked count
+  const usersLinkedCount = await prisma.user.count({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+  });
+
   // user links
   const usersLinked = await prisma.user.findMany({
     where: {
@@ -157,14 +211,7 @@ const getPartnerProfileIntoDb = async (id: string) => {
       fullName: true,
       email: true,
       userImage: true,
-      createdAt: true
-    },
-  });
-
-  // user refer linked count
-  const usersLinkedCount = await prisma.user.count({
-    where: {
-      referralCodeUsed: partnerCode?.partnerCode,
+      createdAt: true,
     },
   });
 
@@ -195,7 +242,7 @@ const getPartnerProfileIntoDb = async (id: string) => {
 
   // year signup
   const currentYear = new Date().getFullYear();
-  const yearSignUp = usersLinked.filter(user => {
+  const yearSignUp = usersLinked.filter((user) => {
     const createdAtYear = new Date(user.createdAt).getFullYear();
     return createdAtYear === currentYear;
   }).length;
@@ -212,7 +259,9 @@ const getPartnerProfileIntoDb = async (id: string) => {
   }
 
   const msInDay = 1000 * 60 * 60 * 24;
-  const daysToPayout = Math.ceil((nextPayoutDate.getTime() - today.getTime()) / msInDay);
+  const daysToPayout = Math.ceil(
+    (nextPayoutDate.getTime() - today.getTime()) / msInDay
+  );
 
   const result = {
     userData,
@@ -223,6 +272,77 @@ const getPartnerProfileIntoDb = async (id: string) => {
     activePlanCount: findUserActivePlanCount,
     yearSignUp,
     daysToPayout,
+  };
+
+  return result;
+};
+
+const myWalletIntoDb = async (id: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      email: true,
+      businessName: true,
+      accountNumber: true,
+      accountHolderName: true,
+      bankName: true,
+      address: true,
+      fullName: true,
+      role: true,
+      loginType: true,
+    },
+  });
+
+  // Partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  // my wallet & calculate commission
+  const myWallet = await prisma.payment.findMany({
+    where: {
+      userUsedReferCode: partnerCode?.partnerCode,
+      status: "COMPLETED",
+    },
+    select: {
+      commissionAmount: true,
+      createdAt: true,
+    },
+  });
+
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+
+  let currentYearBalance = 0;
+  let previousYearBalance = 0;
+
+  myWallet.forEach((payment) => {
+    const paymentYear = new Date(payment.createdAt).getFullYear();
+    if (paymentYear === currentYear) {
+      currentYearBalance += payment.commissionAmount || 0;
+    } else if (paymentYear === previousYear) {
+      previousYearBalance += payment.commissionAmount || 0;
+    }
+  });
+
+  const calculateCommission = myWallet.reduce((total, payment) => {
+    return total + (payment.commissionAmount || 0);
+  }, 0);
+
+
+  const result = {
+    partnerCode,
+    myWallet: calculateCommission,
+    currentYearBalance,
+    previousYearBalance
   };
 
   return result;
@@ -260,6 +380,7 @@ const deleteItemFromDb = async (id: string) => {
 
   return transaction;
 };
+
 export const partnerService = {
   createIntoDb,
   getListFromDb,
@@ -269,4 +390,6 @@ export const partnerService = {
   getPartnerProfileIntoDb,
   usersLinkedIntoDb,
   viewProfileIntoDb,
+  myWalletIntoDb,
+  activePlansIntoDb,
 };
