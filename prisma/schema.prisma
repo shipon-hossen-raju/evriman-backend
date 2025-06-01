@@ -101,7 +101,8 @@ model User {
   isPartner Boolean   @default(false)
   isUser    Boolean   @default(false)
   isPaid    Boolean   @default(false)
-  Payment   Payment[]
+
+  payments Payment[] @relation("PaymentUser")
 
   @@map("users")
 }
@@ -246,6 +247,11 @@ enum PaymentStatus {
   EXPIRED
 }
 
+enum CommissionType {
+  REFERRAL
+  PARTNER
+}
+
 model Payment {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
@@ -260,11 +266,15 @@ model Payment {
   amountUserPoint       Float?
   stripePaymentIntentId String?
 
+  // Commission fields
+  commissionType       CommissionType? // "REFERRAL" or "PARTNER"
+  commissionAmount     Float? // Calculated commission amount
+  commissionReceiverId String?         @db.ObjectId // User or Partner who receives commission
   startDate DateTime
   endDate   DateTime
 
   userId             String            @db.ObjectId
-  user               User?             @relation(fields: [userId], references: [id])
+  user               User?             @relation("PaymentUser", fields: [userId], references: [id])
   subscriptionPlanId String?           @db.ObjectId
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
   pricingOptionId    String?           @db.ObjectId

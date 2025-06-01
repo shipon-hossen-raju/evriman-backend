@@ -1,3 +1,4 @@
+import { PaymentStatus } from "@prisma/client";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -17,7 +18,7 @@ const createPaymentRequest = z.object({
 });
 const paymentConfirmSchema = z.object({
   stripePaymentIntentId: z.string().min(1, "stripePaymentIntentId is require!"),
-  status: z.string().optional(),
+  status: z.nativeEnum(PaymentStatus),
   id: z.string().min(1, "stripePaymentIntentId is require!"),
 });
 
@@ -25,5 +26,5 @@ export const paymentValidation = {
   createSchema,
   updateSchema,
   createPaymentRequest,
-  paymentConfirmSchema
+  paymentConfirmSchema,
 };
