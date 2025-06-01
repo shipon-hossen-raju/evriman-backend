@@ -1,3 +1,5 @@
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 
 const createIntoDb = async (data: any) => {
@@ -12,6 +14,108 @@ const createIntoDb = async (data: any) => {
 const getListFromDb = async () => {
   const result = await prisma.partnerCode.findMany();
   return result;
+};
+
+const usersLinkedIntoDb = async (id: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  // Partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  // user links
+  const usersLinked = await prisma.user.findMany({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      userImage: true,
+      createdAt: true,
+    },
+  });
+
+  // user refer linked count
+  const usersLinkedCount = await prisma.user.count({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+  });
+
+
+  const result = {
+    usersLinkedCount,
+    usersLinked,
+  };
+
+  return result;
+};
+
+// view profile
+const viewProfileIntoDb = async (profileId: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id: profileId,
+    },
+    select: {
+      id: true
+    },
+  });
+  
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  const user = await prisma.user.findFirst({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      userImage: true,
+      createdAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // find payment data
+  const paymentHistory = await prisma.payment.findFirst({
+    where: {
+      userId: user.id,
+      status: "COMPLETED"
+    },
+    include: {
+      subscriptionPlan: true,
+      pricingOption: true
+    }
+  });
+
+  return { user, paymentHistory };
 };
 
 const getPartnerProfileIntoDb = async (id: string) => {
@@ -163,4 +267,6 @@ export const partnerService = {
   updateIntoDb,
   deleteItemFromDb,
   getPartnerProfileIntoDb,
+  usersLinkedIntoDb,
+  viewProfileIntoDb,
 };

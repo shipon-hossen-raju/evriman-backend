@@ -23,6 +23,20 @@ partnerRouter.get(
   partnerController.getPartnerProfile
 );
 
+// Total User Linked
+partnerRouter.get(
+  "/users-linked",
+  auth(UserRole.PARTNER),
+  partnerController.usersLinked
+);
+
+// view profile
+partnerRouter.get(
+  "/view-profile/:profileId",
+  auth(UserRole.PARTNER),
+  partnerController.viewProfile
+);
+
 partnerRouter.get('/:id', auth(), partnerController.getPartnerById);
 
 partnerRouter.put(

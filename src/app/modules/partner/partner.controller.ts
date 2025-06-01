@@ -34,6 +34,28 @@ const getPartnerProfile = catchAsync(async (req, res) => {
   });
 });
 
+const usersLinked = catchAsync(async (req, res) => {
+  const result = await partnerService.usersLinkedIntoDb(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users Linked retrieved successfully",
+    data: result,
+  });
+});
+
+const viewProfile = catchAsync(async (req, res) => {
+  const result = await partnerService.viewProfileIntoDb(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users Linked retrieved successfully",
+    data: result,
+  });
+});
+
 const getPartnerById = catchAsync(async (req, res) => {
   const result = await partnerService.getByIdFromDb(req.params.id);
   sendResponse(res, {
@@ -71,4 +93,6 @@ export const partnerController = {
   updatePartner,
   deletePartner,
   getPartnerProfile,
+  usersLinked,
+  viewProfile,
 };
