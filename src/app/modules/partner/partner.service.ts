@@ -57,7 +57,6 @@ const usersLinkedIntoDb = async (id: string) => {
     },
   });
 
-
   const result = {
     usersLinkedCount,
     usersLinked,
@@ -73,10 +72,10 @@ const viewProfileIntoDb = async (profileId: string) => {
       id: profileId,
     },
     select: {
-      id: true
+      id: true,
     },
   });
-  
+
   const partnerCode = await prisma.partnerCode.findUnique({
     where: {
       userId: userData?.id,
@@ -107,12 +106,12 @@ const viewProfileIntoDb = async (profileId: string) => {
   const paymentHistory = await prisma.payment.findFirst({
     where: {
       userId: user.id,
-      status: "COMPLETED"
+      status: "COMPLETED",
     },
     include: {
       subscriptionPlan: true,
-      pricingOption: true
-    }
+      pricingOption: true,
+    },
   });
 
   return { user, paymentHistory };
@@ -125,10 +124,10 @@ const activePlansIntoDb = async (id: string) => {
       id: id,
     },
     select: {
-      id: true
+      id: true,
     },
   });
-  
+
   const partnerCode = await prisma.partnerCode.findUnique({
     where: {
       userId: userData?.id,
@@ -220,7 +219,6 @@ const yearSignUpIntoDb = async (id: string) => {
     return createdAtYear === currentYear;
   }).length;
 
-
   const result = {
     partnerCode,
     createdAtYearCount,
@@ -238,14 +236,17 @@ const getPartnerProfileIntoDb = async (id: string) => {
     select: {
       id: true,
       email: true,
+      phoneNumber: true,
       businessName: true,
       accountNumber: true,
       accountHolderName: true,
       bankName: true,
+      shortCode: true,
       address: true,
       fullName: true,
       role: true,
       loginType: true,
+      partnerImage: true,
     },
   });
 
@@ -402,12 +403,11 @@ const myWalletIntoDb = async (id: string) => {
     return total + (payment.commissionAmount || 0);
   }, 0);
 
-
   const result = {
     partnerCode,
     myWallet: calculateCommission,
     currentYearBalance,
-    previousYearBalance
+    previousYearBalance,
   };
 
   return result;
@@ -457,5 +457,5 @@ export const partnerService = {
   viewProfileIntoDb,
   myWalletIntoDb,
   activePlansIntoDb,
-  yearSignUpIntoDb
+  yearSignUpIntoDb,
 };
