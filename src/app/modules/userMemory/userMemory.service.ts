@@ -1,9 +1,11 @@
 import { UserMemory } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
+import { dateInput, dateOutput } from "../../../utils/date";
 
 // create user memory
 const createUserMemory = async (payload: UserMemory) => {
+  // Step 1: Validate contactIds
   const existingContacts = await prisma.contactList.findMany({
     where: {
       id: { in: payload.contactIds },
@@ -20,6 +22,7 @@ const createUserMemory = async (payload: UserMemory) => {
     );
   }
 
+  // Step 3: Check if tag exists
   const tag = await prisma.tags.findUnique({
     where: { id: payload.tagId },
   });
@@ -28,9 +31,16 @@ const createUserMemory = async (payload: UserMemory) => {
     throw new ApiError(404, "Tag not found");
   }
 
+  // Step 4: Create memory
   const memory = await prisma.userMemory.create({
     data: {
-      ...payload,
+      content: payload.content,
+      files: payload.files,
+      userId: payload.userId,
+      tagId: payload.tagId,
+      publish: dateInput(payload.publish),
+      contactListId: payload.contactListId,
+      isPublish: payload.isPublish ?? true,
       contacts: {
         create: payload.contactIds.map((contactId) => ({
           contact: {
@@ -45,7 +55,12 @@ const createUserMemory = async (payload: UserMemory) => {
     },
   });
 
-  return memory;
+  const formattedMemory = {
+    ...memory,
+    publish: dateOutput(memory.publish),
+  };
+
+  return formattedMemory;
 };
 
 // update user memory
@@ -53,7 +68,7 @@ const updateUserMemory = async (id: string, payload: Partial<UserMemory>) => {
   // 1. Check if memory exists
   const existingMemory = await prisma.userMemory.findUnique({
     where: { id },
-    include: { contacts: true },
+    include: { contacts: true, tag: true },
   });
 
   if (!existingMemory) {
@@ -98,10 +113,11 @@ const updateUserMemory = async (id: string, payload: Partial<UserMemory>) => {
     where: { id },
     data: {
       content: payload.content,
-      status: payload.status,
+      isPublish: payload.isPublish,
       files: payload.files,
       tagId: payload.tagId,
       userId: payload.userId,
+      ...(payload?.publish && { publish: dateInput(payload?.publish) }),
       contacts: payload.contactIds
         ? {
             create: payload.contactIds.map((contactId) => ({
@@ -118,7 +134,12 @@ const updateUserMemory = async (id: string, payload: Partial<UserMemory>) => {
     },
   });
 
-  return updatedMemory;
+  const formatData = {
+    ...updatedMemory,
+    publish: dateOutput(updatedMemory.publish),
+  };
+
+  return formatData;
 };
 
 // find all memory with filter & search query
@@ -185,7 +206,12 @@ const getAllUserMemories = async (filters: GetUserMemoriesFilter = {}) => {
     },
   });
 
-  return memories;
+  const formatData = memories.map((memory) => ({
+    ...memory,
+    publish: dateOutput(memory.publish),
+  }));
+
+  return formatData;
 };
 
 // get user memory by userId
@@ -206,7 +232,12 @@ const getUserMemoryById = async (id: string) => {
     throw new ApiError(404, "User memory not found");
   }
 
-  return userMemory;
+  const formatData = {
+    ...userMemory,
+    publish: dateOutput(userMemory.publish)
+  }
+
+  return formatData;
 };
 
 // delete user memory by id

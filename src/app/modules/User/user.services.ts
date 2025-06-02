@@ -15,164 +15,193 @@ import prisma from "../../../shared/prisma";
 import { generateOTP } from "../../../utils/GenerateOTP";
 import { userSearchAbleFields } from "./user.costant";
 import { IUserFilterRequest } from "./user.interface";
-import { ApprovedMailTemp, RejectedMailTemp } from "./user.mail";
-import { generateUniquePartnerCode, generateUniqueUserId } from "./user.utils";
+import { ApprovedMailTemp, OtpHtml, RejectedMailTemp } from "./user.mail";
+import {
+  generateReferralCode,
+  generateUniquePartnerCode,
+  generateUniqueUserId,
+} from "./user.utils";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
-  const justEmail = await prisma.user.findFirst({
-    where: {
-      email: payload.email,
-    },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const justEmail = await tx.user.findFirst({
+      where: {
+        email: payload.email,
+      },
+    });
 
-  console.log("justEmail ", justEmail);
+    // check referral
+    if (payload.referralCodeUsed) {
+      const checkReferral = await tx.user.findFirst({
+        where: {
+          referralCode: payload?.referralCodeUsed,
+        },
+      });
 
-  // Check if the user already exists in the database
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      email: payload.email,
+      if (!checkReferral) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Not Fount Referral Code!");
+      }
+    }
+
+    // Check if the user already exists in the database
+    const existingUser = await tx.user.findFirst({
+      where: {
+        email: payload.email,
+        ...(payload.loginType === "PARTNER" && { isPartner: true }),
+        ...(payload.loginType === "USER" && { isUser: true }),
+      },
+    });
+
+    if (existingUser) {
+      if (existingUser.email === payload.email) {
+        throw new ApiError(
+          400,
+          `User with this email ${payload.email} already exists`
+        );
+      }
+    }
+
+    const hashedPassword: string = await bcrypt.hash(
+      payload.password,
+      Number(config.bcrypt_salt_rounds)
+    );
+
+    // Generate a new OTP
+    const { otp, otpExpires } = generateOTP();
+
+    // Ensure password is always a string
+    let password: string;
+    if (payload.isNewData === true) {
+      password = hashedPassword;
+    } else if (justEmail?.password) {
+      password = justEmail.password;
+    } else {
+      throw new ApiError(400, "Password is required for user creation");
+    }
+
+    const { isNewData, ...restPayload } = payload;
+    const {
+      referralCodeUsed,
+      partnerAgreement,
+      updatedAt,
+      partnerType,
+      businessName,
+      ...restPayloadFiltered
+    } = restPayload;
+
+    const userData = {
+      ...restPayloadFiltered,
+      password,
+      otp,
+      expirationOtp: otpExpires,
+      loginType: payload.loginType as LoginType,
+      phoneNumber: payload.phoneNumber,
+      fullName: payload.fullName,
+      role: payload.role,
+      status: payload.status,
+      address: payload.address,
+      dob: payload.dob,
+      age: payload.dob ? differenceInYears(new Date(), payload.dob) : 0,
+      idDocument: payload.idDocument,
+      termsAccepted: payload.termsAccepted,
+      privacyAccepted: payload.privacyAccepted,
+      isVerified: payload.isVerified,
+      isDeceased: payload.isDeceased,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+
+      // partner information
+      partnerAgreement: payload?.partnerAgreement || null,
+      partnerType: payload?.partnerType || null,
+      businessName: payload?.businessName || null,
+
       ...(payload.loginType === "PARTNER" && { isPartner: true }),
       ...(payload.loginType === "USER" && { isUser: true }),
-    },
-  });
+    };
 
-  console.log("existingUser ", existingUser);
+    const env = config.env === "development" ? true : false;
 
-  if (existingUser) {
-    if (existingUser.email === payload.email) {
-      throw new ApiError(
-        400,
-        `User with this email ${payload.email} already exists`
-      );
+    // update user data if user already exists
+    let result;
+    let defaultDataShow = {
+      id: true,
+      userId: true,
+      referralCode: true,
+      email: true,
+      role: true,
+      fullName: true,
+      loginType: true,
+      createdAt: true,
+      updatedAt: true,
+      otp: env,
+      age: true,
+    };
+    if (justEmail?.id && justEmail?.email) {
+      result = await tx.user.update({
+        where: {
+          email: justEmail.email,
+          id: justEmail.id,
+        },
+        data: {
+          ...userData,
+          otp,
+          expirationOtp: otpExpires,
+          updatedAt: new Date(),
+        },
+        select: defaultDataShow,
+      });
+    } else {
+      // create user id
+      const userId = await generateUniqueUserId();
+      const referralCode = await generateReferralCode();
+
+      // increase referral
+      if (payload.referralCodeUsed) {
+        await prisma.user.update({
+          where: {
+            referralCode: payload.referralCodeUsed,
+          },
+          data: {
+            userPoint: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      result = await tx.user.create({
+        data: {
+          ...userData,
+          userId: userId.toString(),
+          referralCode,
+          referralCodeUsed: payload.referralCodeUsed,
+        },
+        select: defaultDataShow,
+      });
     }
-  }
 
-  const hashedPassword: string = await bcrypt.hash(
-    payload.password,
-    Number(config.bcrypt_salt_rounds)
-  );
-
-  // Generate a new OTP
-  const { otp, otpExpires } = generateOTP();
-
-  // create user id
-  const userId = await generateUniqueUserId();
-
-  // const {password, ...restPayload} = payload;
-
-  // Ensure password is always a string
-  let password: string;
-  if (payload.isNewData === true) {
-    password = hashedPassword;
-  } else if (justEmail?.password) {
-    password = justEmail.password;
-  } else {
-    throw new ApiError(400, "Password is required for user creation");
-  }
-
-  const { isNewData, ...restPayload } = payload;
-  const {
-    referralCodeUsed,
-    partnerAgreement,
-    updatedAt,
-    partnerType,
-    businessName,
-    ...restPayloadFiltered
-  } = restPayload;
-
-  const userData = {
-    ...restPayloadFiltered,
-    userId: userId.toString(),
-    password,
-    otp,
-    expirationOtp: otpExpires,
-    loginType: payload.loginType as LoginType,
-    phoneNumber: payload.phoneNumber,
-    fullName: payload.fullName,
-    role: payload.role,
-    status: payload.status,
-    address: payload.address,
-    dob: payload.dob,
-    age: payload.dob ? differenceInYears(new Date(), payload.dob) : 0,
-    idDocument: payload.idDocument,
-    referralCodeUsed: payload.referralCodeUsed,
-    termsAccepted: payload.termsAccepted,
-    privacyAccepted: payload.privacyAccepted,
-    isVerified: payload.isVerified,
-    isDeceased: payload.isDeceased,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-
-    // partner information
-    partnerAgreement: payload?.partnerAgreement || null,
-    partnerType: payload?.partnerType || null,
-    businessName: payload?.businessName || null,
-
-    ...(payload.loginType === "PARTNER" && { isPartner: true }),
-    ...(payload.loginType === "USER" && { isUser: true }),
-  };
-
-  console.log("userData ", userData);
-
-  const env = config.env === "development" ? true : false;
-
-  // update user data if user already exists
-  let result;
-  if (justEmail?.id && justEmail?.email) {
-    result = await prisma.user.update({
-      where: {
-        email: justEmail.email,
-        id: justEmail.id,
+    const token = jwtHelpers.generateToken(
+      {
+        id: result?.id,
+        email: result?.email,
+        role: result?.role,
+        LoginType: result?.loginType,
+        name: result?.fullName,
       },
-      data: {
-        ...userData,
-        otp,
-        expirationOtp: otpExpires,
-        updatedAt: new Date(),
-      },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        role: true,
-        fullName: true,
-        loginType: true,
-        createdAt: true,
-        updatedAt: true,
-        otp: env,
-      },
-    });
-  } else {
-    result = await prisma.user.create({
-      data: { ...userData },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        role: true,
-        loginType: true,
-        fullName: true,
-        createdAt: true,
-        updatedAt: true,
-        otp: env,
-      },
-    });
-  }
+      config.jwt.jwt_secret as Secret,
+      config.jwt.expires_in as string
+    );
 
-  const token = jwtHelpers.generateToken(
-    {
-      id: result?.id,
-      email: result?.email,
-      role: result?.role,
-      LoginType: result?.loginType,
-      name: result?.fullName,
-    },
-    config.jwt.jwt_secret as Secret,
-    config.jwt.expires_in as string
-  );
+    // send email to user otp
+    await emailSender(
+      result.email,
+      OtpHtml(otp),
+      `Welcome to our service! Your OTP is: ${result.otp}`
+    );
 
-  return { result, token, otp };
+    return { result, token, otp };
+  });
 };
 
 // partner complete profile
@@ -211,64 +240,161 @@ const getUsersFromDb = async (
   options: IPaginationOptions
 ) => {
   const { page, limit, skip } = paginationHelper.calculatePagination(options);
-  const { searchTerm, ...filterData } = params;
-
-  console.log("params ", params);
+  const { searchTerm, contacts, ...filterData } = params;
 
   const andConditions: Prisma.UserWhereInput[] = [];
 
   if (params.searchTerm) {
+    // Only include string fields for 'contains' search
+    const stringFields = [
+      "email",
+      "fullName",
+      "address",
+      "phoneNumber",
+      "userId",
+      "role",
+      "status",
+      "businessName",
+    ]; // adjust as per your schema
     andConditions.push({
-      OR: userSearchAbleFields.map((field) => ({
-        [field]: {
-          contains: params.searchTerm,
-          mode: "insensitive",
-        },
-      })),
+      OR: userSearchAbleFields
+        .filter((field) => stringFields.includes(field))
+        .map((field) => ({
+          [field]: {
+            contains: params.searchTerm,
+            mode: "insensitive",
+          },
+        })),
     });
   }
 
-  console.log("searchTerm ", searchTerm);
-  console.dir(andConditions, { depth: Infinity });
-
   if (Object.keys(filterData).length > 0) {
     andConditions.push({
-      AND: Object.keys(filterData).map((key) => ({
-        [key]: {
-          equals: (filterData as any)[key],
-        },
-      })),
+      AND: Object.keys(filterData).map((key) => {
+        let value = (filterData as any)[key];
+        // Convert string "true"/"false" to boolean for boolean fields
+        if (value === "true") value = true;
+        if (value === "false") value = false;
+        return {
+          [key]: {
+            equals: value,
+          },
+        };
+      }),
     });
   }
 
   const whereConditions: Prisma.UserWhereInput = { AND: andConditions };
 
-  console.log("params 246 ", params);
+  console.dir(andConditions, { depth: Infinity });
 
-  const result = await prisma.user.findMany({
-    where: {...params},
-    skip,
-    orderBy:
-      options.sortBy && options.sortOrder
-        ? {
-            [options.sortBy]: options.sortOrder,
-          }
-        : {
-            createdAt: "desc",
+  let result;
+  const defaultShowData = {
+    id: true,
+    fullName: true,
+    email: true,
+    role: true,
+    phoneNumber: true,
+    dob: true,
+    address: true,
+    userImage: true,
+    createdAt: true,
+    updatedAt: true,
+    isDeceased: true,
+    userId: true,
+    referralCode: true,
+
+    isPaid: true,
+    age: true,
+  };
+  // contact list count
+  if (params.contacts) {
+    const contactCount = Number(params.contacts);
+    if (Array.isArray(params.contacts) && params.contacts.length > 0) {
+      andConditions.push({
+        OR: [
+          {
+            userId: {
+              in: params.contacts,
+            },
           },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      role: true,
-      phoneNumber: true,
-      dob: true,
-      address: true,
-      userImage: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+        ],
+      });
+    }
+
+    const usersWithDesiredContactCount = await prisma.user.findMany({
+      where: whereConditions,
+      include: {
+        _count: {
+          select: { ContactList: true },
+        },
+      },
+    });
+    const filteredUserIds = usersWithDesiredContactCount
+      .filter((user) => user._count.ContactList === contactCount)
+      .map((user) => user.id);
+
+    // whereConditions.push
+    const contactCondition = andConditions;
+    contactCondition.push({
+      id: {
+        in: filteredUserIds,
+      },
+    });
+
+    const whereConditionsContact: Prisma.UserWhereInput = {
+      AND: contactCondition,
+    };
+
+    console.dir(whereConditionsContact, { depth: Infinity });
+
+    result = await prisma.user.findMany({
+      where: whereConditionsContact,
+      select: {
+        ...defaultShowData,
+        userId: true,
+        ContactList: {
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true,
+            relationship: true,
+          },
+        },
+        _count: {
+          select: {
+            ContactList: true,
+          },
+        },
+      },
+      skip,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  } else {
+    result = await prisma.user.findMany({
+      where: whereConditions,
+      skip,
+      orderBy:
+        options.sortBy && options.sortOrder
+          ? {
+              [options.sortBy]: options.sortOrder,
+            }
+          : {
+              createdAt: "desc",
+            },
+      select: {
+        ...defaultShowData,
+        // Count the number of ContactList entries for each user
+        _count: {
+          select: { ContactList: true },
+        },
+        // ContactList: true,
+      },
+    });
+  }
+
   const total = await prisma.user.count({
     where: whereConditions,
   });
@@ -276,6 +402,7 @@ const getUsersFromDb = async (
   if (!result || result.length === 0) {
     throw new ApiError(404, "No active users found");
   }
+
   return {
     meta: {
       page,
@@ -284,6 +411,46 @@ const getUsersFromDb = async (
     },
     data: result,
   };
+};
+
+// view profile
+const viewProfile = async (profileId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: profileId, role: "USER" },
+    select: {
+      id: true,
+      userId: true,
+      fullName: true,
+      email: true,
+      role: true,
+      phoneNumber: true,
+      dob: true,
+      address: true,
+      referralCode: true,
+      userImage: true,
+      createdAt: true,
+      updatedAt: true,
+      isPartner: true,
+      isUser: true,
+      status: true,
+      age: true,
+      isDeceased: true,
+      isVerified: true,
+      partnerStatus: true,
+      ContactList: true,
+      _count: {
+        select: {
+          ContactList: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return user;
 };
 
 // reterive all partner from the database also searching anf filtering
@@ -354,8 +521,12 @@ const getAllPartnerFromDb = async (
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      _count: {
+        select: { ContactList: true },
+      },
     },
   });
+
   const total = await prisma.user.count({
     where: whereConditions,
   });
@@ -452,8 +623,6 @@ const updatePartnerStatus = async (
       },
     });
 
-    console.log("findPartner ", findPartner);
-
     if (!findPartner) {
       await prisma.partnerCode.create({
         data: {
@@ -521,16 +690,16 @@ const updateProfile = async (req: Request) => {
   if (file) {
     image = (await fileUploader.uploadToDigitalOcean(file)).Location;
   }
-  if (stringData) {
-    parseData = JSON.parse(stringData);
-  }
+  // if (stringData) {
+  //   parseData = JSON.parse(stringData);
+  // }
   const result = await prisma.user.update({
     where: {
       id: existingUser.id, // Ensure `existingUser.id` is valid and exists
     },
     data: {
-      fullName: parseData.fullName || existingUser.fullName,
-      email: parseData.email || existingUser.email,
+      // fullName: parseData.fullName || existingUser.fullName,
+      // email: parseData.email || existingUser.email,
       // profileImage: image || existingUser.profileImage,
       updatedAt: new Date(), // Assuming your model has an `updatedAt` field
     },
@@ -539,6 +708,53 @@ const updateProfile = async (req: Request) => {
       fullName: true,
       email: true,
       // profileImage: true,
+    },
+  });
+
+  return result;
+};
+
+// update profile by user won profile using token or email and id
+const profileImageUpload = async (req: Request) => {
+  const file = req.file;
+
+  let image;
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      id: req.user.id,
+    },
+  });
+
+  if (!existingUser) {
+    throw new ApiError(404, "User not found");
+  }
+  if (file) {
+    image = (await fileUploader.uploadToDigitalOcean(file)).Location;
+  }
+  const result = await prisma.user.update({
+    where: {
+      id: existingUser.id,
+    },
+
+    data: {
+      ...(existingUser.role === "USER" && {
+        userImage: image || existingUser.userImage,
+      }),
+      ...(existingUser.role === "PARTNER" && {
+        partnerImage: image || existingUser.partnerImage,
+      }),
+      updatedAt: new Date(),
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      ...(existingUser.role === "USER" && {
+        userImage: true,
+      }),
+      ...(existingUser.role === "PARTNER" && {
+        partnerImage: true,
+      }),
     },
   });
 
@@ -589,4 +805,6 @@ export const userService = {
   updateUserIntoDb,
   getPartner,
   updatePartnerStatus,
+  profileImageUpload,
+  viewProfile,
 };

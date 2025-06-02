@@ -26,7 +26,8 @@ router.post("/reset-password", authController.resetPassword);
 
 router.get(
   "/profile",
-  auth(UserRole.USER, UserRole.PARTNER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  // auth(UserRole.USER, UserRole.PARTNER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  auth(),
   authController.getMyProfile
 );
 

@@ -69,7 +69,7 @@ const getMyProfile = async (id: string) => {
       deathVerification: true,
       memoryClaimRequests: true,
       offerCodes: true,
-      Payment: true,
+      payments: true,
     },
   });
 

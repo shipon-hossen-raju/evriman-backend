@@ -56,7 +56,7 @@ export const CreateUserValidationSchema = z.object({
   partnerType: z.nativeEnum(PartnerType).default("MORTGAGE_BROKER").optional(),
   businessName: z.string().min(2).optional(),
 
-  isNewData: z.literal(true, {
+  isNewData: z.boolean({
     errorMap: () => ({ message: "You must be a new user to register" }),
   }),
 });

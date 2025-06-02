@@ -1,4 +1,5 @@
 import { OfferCode } from "@prisma/client";
+import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 
@@ -12,68 +13,148 @@ type CreateOfferCodeInput = Omit<
 };
 
 const createOfferCode = async (payload: CreateOfferCodeInput) => {
-
-  const findOfferCode = await prisma.offerCode.findFirst({
-    where: {
-      code: payload.code,
-    },
-  });
-
-  if (findOfferCode) {
-    throw new ApiError(400, "Offer code already exists");
-  }
-
-  const newOfferCode = await prisma.offerCode.create({
-    data: {
-      ...payload,
-      applicablePlans: {
-        create: payload.applicablePlans.map((planId) => ({
-          subscriptionPlanId: planId,
-        })),
+  console.log("payload ", payload);
+  return await prisma.$transaction(async (tx) => {
+    const findOfferCode = await tx.offerCode.findFirst({
+      where: {
+        code: payload.code,
       },
-      pricingOptionsLevelId: {
-        create:
-          payload.pricingOptionsLevelId?.map((pricingOptionId) => ({
-            pricingOptionId,
-          })) || [],
+    });
+
+    if (findOfferCode) {
+      throw new ApiError(400, "Offer code already exists");
+    }
+
+    console.log("payload ", payload);
+
+    // find & check user
+    if (payload.targetUsers?.length) {
+      // Check if all target users exist
+      const users = await tx.user.findMany({
+        where: {
+          userId: { in: payload.targetUsers },
+        },
+        select: { id: true, userId: true },
+      });
+
+      const foundUserIds = users.map((u) => u.userId);
+      const missingUserIds = payload.targetUsers.filter(
+        (id) => !foundUserIds.includes(id)
+      );
+
+      if (missingUserIds.length > 0) {
+        throw new ApiError(
+          404,
+          `User(s) not found: ${missingUserIds.join(", ")}`
+        );
+      }
+    }
+
+    // find & check plans
+    if (payload.applicablePlans && payload.applicablePlans.length) {
+      // Check if all applicable plans exist
+      const plans = await tx.subscriptionPlan.findMany({
+        where: {
+          id: { in: payload.applicablePlans },
+        },
+        select: { id: true },
+      });
+
+      const foundPlanIds = plans.map((p) => p.id);
+      const missingPlanIds = payload.applicablePlans.filter(
+        (id) => !foundPlanIds.includes(id)
+      );
+
+      if (missingPlanIds.length > 0) {
+        throw new ApiError(
+          httpStatus.NOT_FOUND,
+          `Subscription plan(s) not found: ${missingPlanIds.join(", ")}`
+        );
+      }
+    }
+
+    // find & check pricing options
+    if (payload.pricingOptionsLevelId && payload.pricingOptionsLevelId.length) {
+      // Check if all pricing options exist
+      const pricingOptions = await tx.pricingOption.findMany({
+      where: {
+        id: { in: payload.pricingOptionsLevelId },
       },
-      targetUsers: {
-        create: payload.targetUsers?.map((userId) => ({
-          userId,
-        })) || [],
-      },
-    },
-    include: {
-      applicablePlans: {
-        include: {
-          subscriptionPlan: true,
+      select: { id: true },
+      });
+
+      const foundPricingOptionIds = pricingOptions.map((p) => p.id);
+      const missingPricingOptionIds = payload.pricingOptionsLevelId.filter(
+      (id) => !foundPricingOptionIds.includes(id)
+      );
+
+      if (missingPricingOptionIds.length > 0) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        `Pricing option(s) not found: ${missingPricingOptionIds.join(", ")}`
+      );
+      }
+    }
+
+    const newOfferCode = await tx.offerCode.create({
+      data: {
+        ...payload,
+        applicablePlans: {
+          create: payload.applicablePlans.map((planId) => ({
+            subscriptionPlanId: planId,
+          })),
+        },
+        pricingOptionsLevelId: {
+          create:
+            payload.pricingOptionsLevelId?.map((pricingOptionId) => ({
+              pricingOptionId,
+            })) || [],
+        },
+        targetUsers: {
+          create:
+            payload.targetUsers
+              ? (
+                  await tx.user.findMany({
+                    where: { userId: { in: payload.targetUsers } },
+                    select: { id: true, userId: true },
+                  })
+                ).map((user) => ({
+                  userId: user.id,
+                }))
+              : [],
         },
       },
-      pricingOptionsLevelId: {
-        include: {
-          pricingOption: true,
+      include: {
+        applicablePlans: {
+          include: {
+            subscriptionPlan: true,
+          },
         },
-      },
-      targetUsers: {
-        select: {
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
+        pricingOptionsLevelId: {
+          include: {
+            pricingOption: true,
+          },
+        },
+        targetUsers: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return newOfferCode;
+    return newOfferCode;
+  });
 };
 
 // get All Offer Codes
 const getAllOfferCodes = async () => {
-
   const offerCodes = await prisma.offerCode.findMany({
     where: {
       isActive: true,
@@ -129,13 +210,13 @@ const getOfferCodeById = async (id: string) => {
         select: {
           user: {
             select: {
-              id: true, 
+              id: true,
               fullName: true,
               email: true,
-            }
-          }
-        }
-      }
+            },
+          },
+        },
+      },
     },
   });
 
@@ -148,7 +229,6 @@ const getOfferCodeById = async (id: string) => {
 
 // update offer code
 const updateOfferCode = async (id: string, payload: CreateOfferCodeInput) => {
-
   const existingOfferCode = await prisma.offerCode.findUnique({
     where: { id },
     include: {

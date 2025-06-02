@@ -1,20 +1,20 @@
-import express from 'express';
-import auth from '../../middlewares/auth';
-import validateRequest from '../../middlewares/validateRequest';
-import { partnerController } from './partner.controller';
-import { partnerValidation } from './partner.validation';
-import { UserRole } from '@prisma/client';
+import { UserRole } from "@prisma/client";
+import express from "express";
+import auth from "../../middlewares/auth";
+import validateRequest from "../../middlewares/validateRequest";
+import { partnerController } from "./partner.controller";
+import { partnerValidation } from "./partner.validation";
 
 const partnerRouter = express.Router();
 
 partnerRouter.post(
-'/',
-auth(),
-validateRequest(partnerValidation.createSchema),
-partnerController.createPartner,
+  "/",
+  auth(),
+  validateRequest(partnerValidation.createSchema),
+  partnerController.createPartner
 );
 
-partnerRouter.get('/', auth(), partnerController.getPartnerList);
+partnerRouter.get("/", auth(), partnerController.getPartnerList);
 
 // only partner profile
 partnerRouter.get(
@@ -23,15 +23,43 @@ partnerRouter.get(
   partnerController.getPartnerProfile
 );
 
-partnerRouter.get('/:id', auth(), partnerController.getPartnerById);
-
-partnerRouter.put(
-'/:id',
-auth(),
-validateRequest(partnerValidation.updateSchema),
-partnerController.updatePartner,
+// Total User Linked
+partnerRouter.get(
+  "/users-linked",
+  auth(UserRole.PARTNER),
+  partnerController.usersLinked
 );
 
-partnerRouter.delete('/:id', auth(), partnerController.deletePartner);
+// Total User Linked
+partnerRouter.get(
+  "/my-wallet",
+  auth(UserRole.PARTNER),
+  partnerController.myWallet
+);
+
+// view profile
+partnerRouter.get(
+  "/view-profile/:profileId",
+  auth(UserRole.PARTNER),
+  partnerController.viewProfile
+);
+
+// active plans user list
+partnerRouter.get(
+  "/active-plans",
+  auth(UserRole.PARTNER),
+  partnerController.activePlans
+);
+
+partnerRouter.get("/:id", auth(), partnerController.getPartnerById);
+
+partnerRouter.put(
+  "/:id",
+  auth(),
+  validateRequest(partnerValidation.updateSchema),
+  partnerController.updatePartner
+);
+
+partnerRouter.delete("/:id", auth(), partnerController.deletePartner);
 
 export const partnerRoutes = partnerRouter;

@@ -55,8 +55,11 @@ router.patch(
   userController.updatePartnerStatus
 );
 
+// view profile
+router.get("/user-view-profile/:profileId", auth(), userController.viewProfile);
+
 // *!get all  user
-router.get("/", userController.getUsers);
+router.get("/all", userController.getUsers);
 
 // *!profile user
 router.put(
@@ -66,6 +69,14 @@ router.put(
   auth(UserRole.ADMIN, UserRole.USER, UserRole.PARTNER, UserRole.SUPER_ADMIN),
   fileUploader.uploadSingle,
   userController.updateProfile
+);
+
+// profile image update
+router.put(
+  "/profile-image",
+  auth(),
+  fileUploader.uploadSingle,
+  userController.profileImageUpload
 );
 
 // *!update  user

@@ -1,6 +1,7 @@
 import { ContactList } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
+import httpStatus from "http-status";
 
 // contact list create
 const contactListCreate = async (payload: ContactList) => {
@@ -9,17 +10,32 @@ const contactListCreate = async (payload: ContactList) => {
     where: {
       id: payload.userId,
     },
+    select: {
+      contactLimit: true,
+      id: true,
+      email: true,
+      ContactList: true,
+      _count: {
+        select: {
+          ContactList: true
+        }
+      }
+    },
   });
 
   if (!findUser) {
     throw new ApiError(404, "User not found!");
   }
 
+  if (findUser.contactLimit <= findUser._count.ContactList) {
+    throw new ApiError(httpStatus.ALREADY_REPORTED, "Your contact limit has expired!")
+  }
+
   const result = await prisma.contactList.create({
     data: payload,
   });
 
-  return result;
+  return findUser;
 };
 
 // contact list update
@@ -73,14 +89,14 @@ const getAllContactList = async () => {
   return contactLists;
 };
 
-// delete contact list 
-const deleteContactList = async (id: string) => { 
+// delete contact list
+const deleteContactList = async (id: string) => {
   const result = await prisma.contactList.delete({
-    where: { id }
+    where: { id },
   });
 
-  return result
-}
+  return result;
+};
 
 const contactListService = {
   contactListCreate,

@@ -2,8 +2,7 @@ import { PaymentStatus } from "@prisma/client";
 import { stripe } from "../../../config/stripe.config";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
-import emailSender from "../../../shared/emailSender";
-import { paymentConfirmHtml } from "./payment.mail";
+import { dateOutput } from "../../../utils/date";
 
 const createIntoDb = async (data: any) => {
   const transaction = await prisma.$transaction(async (prisma) => {
@@ -14,7 +13,7 @@ const createIntoDb = async (data: any) => {
   return transaction;
 };
 
-const findUserAndPartner = async (
+const createPaymentRequest = async (
   userId: string,
   payload: {
     subscriptionPlanId: string;
@@ -49,11 +48,45 @@ const findUserAndPartner = async (
         referralCodeUsed: true,
         userPoint: true,
         email: true,
+        partnerCodeId: true,
       },
     });
 
-    let findOfferCode = null;
+    let referralUserFind: {
+      referType: "user" | "partner";
+      id: string;
+    } = {
+      referType: "user",
+      id: "",
+    };
+    if (findUser?.referralCodeUsed) {
+      const findReferUser = await prisma.user.findUnique({
+        where: {
+          referralCode: findUser?.referralCodeUsed,
+        },
+        select: {
+          id: true,
+          role: true,
+          email: true,
+          referralCode: true,
+          referralCodeUsed: true,
+        },
+      });
+      if (findReferUser) {
+        referralUserFind = { referType: "user", id: findReferUser.id };
+      }
 
+      const findReferPartner = await prisma.partnerCode.findUnique({
+        where: {
+          partnerCode: findUser?.referralCodeUsed,
+        },
+      });
+      if (findReferPartner) {
+        referralUserFind = { referType: "partner", id: findReferPartner.id };
+      }
+    }
+
+    let findOfferCode = null;
     if (payload.offerCode) {
       findOfferCode = await prisma.offerCode.findUnique({
         where: {
@@ -74,6 +107,9 @@ const findUserAndPartner = async (
     if (!findSPI || !findPricingPOI) {
       throw new ApiError(404, "Data Not Fount");
     }
+    if (!findOfferCode && payload.offerCode) {
+      throw new ApiError(404, "Offer Data Not Fount");
+    }
     let amount: number = findPricingPOI.amount;
 
     // if offer code
@@ -82,7 +118,6 @@ const findUserAndPartner = async (
       const discountType = findOfferCode.discountType;
 
       if (discountType === "PERCENTAGE") {
-        // const discountValue = amount - amount * (findOfferCode.discountValue / 100);
         offerCodeAmount = amount * (findOfferCode.discountValue / 100);
         amount = amount - offerCodeAmount;
       } else if (discountType === "FIXED") {
@@ -94,9 +129,10 @@ const findUserAndPartner = async (
     }
 
     const userPoint = findUser?.userPoint;
-    let userUpdated;
+
     let useUserPoint;
     let amountUserPoint;
+
     // if user point
     if (userPoint) {
       if (userPoint <= 100) {
@@ -105,40 +141,10 @@ const findUserAndPartner = async (
         useUserPoint = userPoint;
         amountUserPoint = userPointAmount;
         amount = amount - userPointAmount;
-
-        // user update
-        userUpdated = await prisma.user.update({
-          where: {
-            id: findUser?.id,
-          },
-          data: {
-            userPoint: 0,
-          },
-          select: {
-            id: true,
-            userPoint: true,
-          },
-        });
       } else if (userPoint >= 100) {
         amount = amount - amount * (100 / 100);
         useUserPoint = 100;
         amountUserPoint = amount;
-
-        const remainingPoint = userPoint - 100;
-
-        // user update
-        userUpdated = await prisma.user.update({
-          where: {
-            id: findUser?.id,
-          },
-          data: {
-            userPoint: remainingPoint,
-          },
-          select: {
-            id: true,
-            userPoint: true,
-          },
-        });
       }
     }
 
@@ -158,11 +164,23 @@ const findUserAndPartner = async (
         }),
     };
 
-    const paymentIntent = await createStripePaymentIntent(
-      amount,
-      "gbp",
-      metadata
-    );
+    // Commission logic
+    let commissionType: "REFERRAL" | "PARTNER" = "REFERRAL";
+    let commissionAmount: number = 0;
+    let commissionReceiverId: string = "";
+
+    // If user is a partner, give 25% commission to partner
+    if (referralUserFind.referType === "partner") {
+      commissionType = "PARTNER";
+      commissionAmount = Number((amount * 0.25).toFixed(2));
+      commissionReceiverId = referralUserFind.id;
+    }
+    // Else, if user used a referral code, give referral point (handled elsewhere, but can set commission fields)
+    else if (referralUserFind.referType === "user") {
+      commissionType = "REFERRAL";
+      commissionAmount = 0;
+      commissionReceiverId = referralUserFind.id;
+    }
 
     // store subscription
     const startDate = new Date();
@@ -180,21 +198,37 @@ const findUserAndPartner = async (
       amountPricing: findPricingPOI.amount,
       amountOfferCode: Number(offerCodeAmount.toFixed(2)),
       amountUserPoint: Number(amountUserPoint?.toFixed(2)),
-      stripePaymentIntentId: paymentIntent.id,
+      stripePaymentIntentId: "",
       startDate,
       endDate,
+      commissionType,
+      commissionAmount,
+      commissionReceiverId,
+      subscriptionPlanId: findSPI.id,
+      pricingOptionId: findPricingPOI.id,
+      userId: findUser?.id ?? "",
+      offerCodeId: findOfferCode?.id,
     };
 
+    // const {
+    //   subscriptionPlanId,
+    //   pricingOptionId,
+    //   userId: userIdFromStore,
+    //   offerCodeId,
+    //   ...restStoreDatabase
+    // } = storeDatabase;
+
     const storedData = await prisma.payment.create({
-      data: { ...storeDatabase, status: "PENDING" },
+      data: {
+        ...storeDatabase,
+        status: "PENDING"
+      },
     });
 
     return {
-      ...storeDatabase,
-      paymentIntent: {
-        id: paymentIntent.id,
-        client_secret: paymentIntent.client_secret,
-      },
+      ...storedData,
+      startDate: dateOutput(storedData.startDate),
+      endDate: dateOutput(storedData.endDate),
     };
   });
 };
@@ -243,39 +277,29 @@ const updateIntoDb = async (id: string, data: any) => {
   return transaction;
 };
 const paymentConfirmIntoDb = async (payload: {
+  id: string;
   status: PaymentStatus;
-  stripePaymentIntentId: string;
+  subscriptionPlanId: string;
 }) => {
-  if (!payload.stripePaymentIntentId) {
-    throw new ApiError(400, "stripePaymentIntentId is required!");
+  if (!payload.id) {
+    throw new ApiError(400, "Payment Id is required!");
   }
 
   const findPayment = await prisma.payment.findUnique({
-    where: { stripePaymentIntentId: payload.stripePaymentIntentId },
+    where: { id: payload.id },
   });
 
   if (!findPayment) throw new ApiError(404, "Payment Data not fount!");
-  console.log("findPayment ", findPayment);
 
   const transaction = await prisma.$transaction(async (prisma) => {
     const result = await prisma.payment.update({
-      where: { stripePaymentIntentId: payload.stripePaymentIntentId },
+      where: { id: payload.id },
       data: {
         status: payload.status,
       },
     });
 
     if (payload.status === "COMPLETED") {
-      // user update
-      const userUpdate = await prisma.user.update({
-        where: {
-          id: result.userId,
-        },
-        data: {
-          isPaid: true,
-        },
-      });
-
       // find user
       const findUser = await prisma.user.findUnique({
         where: {
@@ -287,19 +311,33 @@ const paymentConfirmIntoDb = async (payload: {
           referralCodeUsed: true,
           userPoint: true,
           email: true,
+          contactLimit: true,
         },
       });
 
-      console.log("findUser ", findUser);
+      // user update
+      const userUpdate = await prisma.user.update({
+        where: {
+          id: result.userId,
+        },
+        data: {
+          isPaid: true,
+          contactLimit: findPayment.contactLimit,
+          userPoint: Math.max(
+            (findUser?.userPoint ?? 0) - (findPayment?.useUserPoint ?? 0),
+            0
+          ),
+        },
+      });
 
-      // send confirm mail
-      // const email = await emailSender(
-      //   updatedUser.email,
-      //   paymentConfirmHtml({
-      //     userName:
-      //   }),
-      //   `Partner Status Notification from ${config.site_name}`
-      // );
+      // used referral partner commission 25% divide
+      if (findPayment.userUsedReferCode) {
+        // Find the user who owns the referral code
+        const referralUser = await prisma.user.findFirst({
+          where: { referralCodeUsed: findPayment.userUsedReferCode },
+          select: { id: true, userPoint: true },
+        });
+      }
     } else {
       await prisma.user.update({
         where: {
@@ -338,6 +376,6 @@ export const paymentService = {
   deleteItemFromDb,
 
   createStripePaymentIntent,
-  findUserAndPartner,
+  createPaymentRequest,
   paymentConfirmIntoDb,
 };
