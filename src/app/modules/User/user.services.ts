@@ -136,6 +136,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       updatedAt: true,
       otp: env,
       age: true,
+      isCompleteProfile: true,
+      isCompletePartnerProfile: true,
     };
     if (justEmail?.id && justEmail?.email) {
       result = await tx.user.update({
@@ -200,7 +202,14 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       `Welcome to our service! Your OTP is: ${result.otp}`
     );
 
-    return { result, token, otp };
+    return {
+      result,
+      token,
+      otp,
+      role: result?.role,
+      isCompleteProfile: result.isCompleteProfile,
+      isCompletePartnerProfile: result.isCompletePartnerProfile,
+    };
   });
 };
 

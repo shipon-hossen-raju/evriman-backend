@@ -54,7 +54,12 @@ const loginUser = async (payload: {
     config.jwt.expires_in as string
   );
 
-  return { token: accessToken };
+  return {
+    token: accessToken,
+    role: userData?.role,
+    isCompleteProfile: userData.isCompleteProfile,
+    isCompletePartnerProfile: userData.isCompletePartnerProfile,
+  };
 };
 
 // get user profile

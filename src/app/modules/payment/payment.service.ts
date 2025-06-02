@@ -221,7 +221,7 @@ const createPaymentRequest = async (
     const storedData = await prisma.payment.create({
       data: {
         ...storeDatabase,
-        status: "PENDING"
+        status: "PENDING",
       },
     });
 
@@ -263,6 +263,101 @@ const getByIdFromDb = async (id: string) => {
     throw new Error("Payment not found");
   }
   return result;
+};
+
+const totalSalesIntoDb = async ({
+  year,
+  plan,
+}: { year?: string; plan?: string } = {}) => {
+  const whereClause: any = {
+    status: {
+      in: ["EXPIRED", "COMPLETED"],
+    },
+  };
+
+  // Filter by year
+  if (year && year !== "All Year") {
+    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+    const endDate = new Date(`${+year + 1}-01-01T00:00:00.000Z`);
+    whereClause.createdAt = {
+      gte: startDate,
+      lt: endDate,
+    };
+  }
+
+  // Filter by plan
+  if (plan && plan !== "All Plan") {
+    whereClause.pricingOption = {
+      label: {
+        contains: plan.replace(" Plan", ""), // e.g., "3 Year" from "3 Year Plan"
+        mode: "insensitive",
+      },
+    };
+  }
+
+  const payments = await prisma.payment.findMany({
+    where: whereClause,
+    select: {
+      amountPay: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+      status: true,
+      subscriptionPlan: true,
+      pricingOption: {
+        select: {
+          id: true,
+          amount: true,
+          durationInMonths: true,
+          eligibility: true,
+          label: true,
+        },
+      },
+      userId: true,
+    },
+  });
+
+  if (!payments) throw new Error("Payment not found");
+
+  const total = payments.reduce((sum, p) => sum + (p.amountPay ?? 0), 0);
+
+  // Group by pricingOptionId and count unique users for each pricing option
+  const pricingUser = Object.values(
+    payments.reduce<
+      Record<string, { pricingOptionId: string; userIds: Set<string> }>
+    >((acc, payment) => {
+      const pricingOptionId = payment.pricingOption?.id;
+      const userId = payment.userId;
+      if (pricingOptionId && userId) {
+        if (!acc[pricingOptionId]) {
+          acc[pricingOptionId] = { pricingOptionId, userIds: new Set() };
+        }
+        acc[pricingOptionId].userIds.add(userId);
+      }
+      return acc;
+    }, {})
+  );
+  // Find unique pricing options from the payments
+  const pricingOptions = [
+    ...new Map(
+      payments
+        .filter((p) => p.pricingOption)
+        .map((p) => [p.pricingOption!.id, p.pricingOption])
+    ).values(),
+  ];
+
+  const userTest = pricingUser.map(({ pricingOptionId, userIds }) => {
+    const pricingOption = pricingOptions.find((po) => po?.id === pricingOptionId);
+    return {
+      userCount: userIds.size,
+      pricingOption,
+    };
+  });
+
+  return { userTest, total };
 };
 
 const updateIntoDb = async (id: string, data: any) => {
@@ -378,4 +473,5 @@ export const paymentService = {
   createStripePaymentIntent,
   createPaymentRequest,
   paymentConfirmIntoDb,
+  totalSalesIntoDb,
 };

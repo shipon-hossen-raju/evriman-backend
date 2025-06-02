@@ -101,6 +101,8 @@ model User {
   isPartner Boolean   @default(false)
   isUser    Boolean   @default(false)
   isPaid    Boolean   @default(false)
+  isCompleteProfile    Boolean   @default(false)
+  isCompletePartnerProfile    Boolean   @default(false)
 
   payments Payment[] @relation("PaymentUser")
 
