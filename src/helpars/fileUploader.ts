@@ -31,7 +31,7 @@ cloudinary.config({
 
 // Multer configuration using memoryStorage (for DigitalOcean & Cloudinary)
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+export const upload = multer({ storage });
 
 // ✅ Fixed Cloudinary Storage
 const cloudinaryStorage = new CloudinaryStorage({

@@ -1,4 +1,4 @@
-import { DeathVerification } from "@prisma/client";
+import { DeathVerification, VerificationStatus } from "@prisma/client";
 import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
@@ -52,7 +52,7 @@ const updateIntoDb = async (id: string, data: any) => {
 };
 
 // status update into db
-const statusUpdateIntoDb = async (id: string, data: any) => {
+const statusUpdateIntoDb = async (id: string, payload: {status: VerificationStatus}) => {
   // find the death verification by ID
   const deathCertificate = await prisma.deathVerification.findUnique({
     where: { id },
@@ -61,10 +61,10 @@ const statusUpdateIntoDb = async (id: string, data: any) => {
     throw new ApiError(httpStatus.NOT_FOUND, "DeathVerification not found");
   }
   // Check if the status is already set to the requested status
-  if (deathCertificate.status === data.status) {
+  if (deathCertificate.status === payload.status) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      `DeathVerification status is already set to ${data.status}`
+      `DeathVerification status is already set to ${payload}`
     );
   }
 
@@ -75,7 +75,7 @@ const statusUpdateIntoDb = async (id: string, data: any) => {
       id: true,
       userId: true,
       isDeceased: true,
-    }
+    },
   });
   if (!user) {
     throw new ApiError(
@@ -84,24 +84,40 @@ const statusUpdateIntoDb = async (id: string, data: any) => {
     );
   }
 
-  // update the user's isDeceased status
-  const updatedUser = await prisma.user.update({
-    where: { userId: user.userId },
-    data: {
-      isDeceased: data.status === "APPROVED" ? true : false,
-    }
-  });
-  if (!updatedUser) {
-    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  let statusCode: VerificationStatus = "PENDING";
+  if (payload.status === "APPROVED") {
+    statusCode = "APPROVED";
+  } else if (payload.status === "CHECKING") {
+    statusCode = "CHECKING";
+  } else if (payload.status === "REJECTED") {
+    statusCode = "REJECTED";
+  } else if (payload.status === "PENDING") {
+    statusCode = "PENDING";
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid status value");
   }
+
+ 
 
   // update the death verification status
   const transaction = await prisma.$transaction(async (prisma) => {
+    // update the user's isDeceased status
+    const updatedUser = await prisma.user.update({
+      where: { userId: user.userId },
+      data: {
+        isDeceased: payload.status === "APPROVED" ? true : false,
+      },
+    });
+    if (!updatedUser) {
+      throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    }
+
     const result = await prisma.deathVerification.update({
       where: { id },
-      data,
+      data: { status: statusCode },
     });
     return result;
+
   });
 
   return transaction;

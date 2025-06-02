@@ -50,8 +50,6 @@ const updateDeathVerification = catchAsync(async (req, res) => {
 });
 
 const statusUpdateDeathVerification = catchAsync(async (req, res) => {
-
-
   // Validate the status update request
   const result = await deathVerificationService.statusUpdateIntoDb(
     req.params.id,

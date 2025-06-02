@@ -21,6 +21,7 @@ enum LoginType {
 enum VerificationStatus {
   PENDING
   APPROVED
+  CHECKING
   REJECTED
 }
 
@@ -116,6 +117,7 @@ model DeathVerification {
   requesterName  String
   requesterEmail String
   requesterPhone String
+  requesterImage String
 
   deceasedName      String
   deceasedProfileId String

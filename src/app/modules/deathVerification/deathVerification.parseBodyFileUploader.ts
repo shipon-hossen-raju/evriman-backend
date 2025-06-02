@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import catchAsync from "../../../shared/catchAsync";
-import ApiError from "../../../errors/ApiErrors";
-import { fileUploader } from "../../../helpars/fileUploader";
-import prisma from "../../../shared/prisma";
 import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
+import { fileUploader, upload } from "../../../helpars/fileUploader";
+import catchAsync from "../../../shared/catchAsync";
+import prisma from "../../../shared/prisma";
 
 export const parseBodyFileUploader = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -13,9 +13,18 @@ export const parseBodyFileUploader = catchAsync(
 
     const bodyData = JSON.parse(req.body.data);
 
-    const file = req.file;
-    if (!file) {
-      throw new ApiError(400, "File is required");
+    const files = req.files as {
+      [fieldname: string]: Express.Multer.File[];
+    };
+
+    if (
+      !files ||
+      (!files.requesterImage?.length && !files.deathCertificate?.length)
+    ) {
+      throw new ApiError(
+        400,
+        "Both requesterImage and deathCertificate are required"
+      );
     }
 
     // check if a userId exists in the payload
@@ -24,6 +33,7 @@ export const parseBodyFileUploader = catchAsync(
         userId: bodyData.deceasedProfileId,
       },
     });
+
     if (!findUser) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
@@ -31,16 +41,37 @@ export const parseBodyFileUploader = catchAsync(
       );
     }
 
-    const image = await fileUploader.uploadToDigitalOcean(file);
-    const imageUrl = image?.Location;
-
-    const userData = {
-      ...bodyData,
-      deathCertificate: imageUrl,
+    const images = {
+      requesterImage: "",
+      deathCertificate: "",
     };
 
-    req.body = userData;
+    if (files.requesterImage?.length) {
+      const uploaded = await fileUploader.uploadToDigitalOcean(
+        files.requesterImage[0]
+      );
+      images.requesterImage = uploaded?.Location;
+    }
+
+    if (files.deathCertificate?.length) {
+      const uploaded = await fileUploader.uploadToDigitalOcean(
+        files.deathCertificate[0]
+      );
+      images.deathCertificate = uploaded?.Location;
+    }
+
+    // You can now attach the processed data to req.body for next middleware
+    req.body = {
+      ...bodyData,
+      ...images,
+    };
 
     next();
   }
 );
+
+
+export const updateProfile = upload.fields([
+  { name: "requesterImage", maxCount: 1 },
+  { name: "deathCertificate", maxCount: 1 },
+]);
