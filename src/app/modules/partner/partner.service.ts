@@ -43,10 +43,12 @@ const usersLinkedIntoDb = async (id: string) => {
     },
     select: {
       id: true,
+      userId: true,
       fullName: true,
       email: true,
       userImage: true,
       createdAt: true,
+      address: true
     },
   });
 
@@ -95,6 +97,9 @@ const viewProfileIntoDb = async (profileId: string) => {
       email: true,
       userImage: true,
       createdAt: true,
+      userId: true,
+      phoneNumber: true,
+      address: true
     },
   });
 

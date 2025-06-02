@@ -12,6 +12,7 @@ import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.rout
 import tagsRoute from "../modules/tags/tags.rotue";
 import { userRoutes } from "../modules/user/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
+import { adminRoutes } from "../modules/admin/admin.routes";
 
 const router = express.Router();
 
@@ -67,6 +68,10 @@ const moduleRoutes = [
   {
     path: "/payment",
     route: paymentRoutes,
+  },
+  {
+    path: "/admin",
+    route: adminRoutes,
   },
 ];
 

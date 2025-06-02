@@ -34,21 +34,6 @@ const getPaymentById = catchAsync(async (req, res) => {
   });
 });
 
-// total sales
-const totalSales = catchAsync(async (req, res) => {
-  const result = await paymentService.totalSalesIntoDb({
-    year: (req.query.year as string) || "",
-    plan: (req.query.plan as string) || "",
-  });
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Total Sales retrieved successfully",
-    data: result,
-  });
-});
-
 const updatePayment = catchAsync(async (req, res) => {
   const result = await paymentService.updateIntoDb(req.params.id, req.body);
   sendResponse(res, {
@@ -103,5 +88,4 @@ export const paymentController = {
   deletePayment,
   createPaymentRequest,
   paymentConfirm,
-  totalSales,
 };

@@ -20,7 +20,7 @@ router.post(
 
 // partner complete profile
 router.put(
-  "/partner-complete/",
+  "/profile-complete/",
   auth(),
   validateRequest(userValidation.partnerCompleteProfileSchema),
   userController.partnerCompleteProfile
@@ -34,11 +34,11 @@ router.get(
 );
 
 // partner complete profile
-router.get(
-  "/partner/all",
-  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  userController.getAllPartner
-);
+// router.get(
+//   "/partner/all",
+//   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+//   userController.getAllPartner
+// );
 
 // partner complete profile
 router.get(

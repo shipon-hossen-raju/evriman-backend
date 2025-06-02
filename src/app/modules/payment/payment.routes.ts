@@ -29,9 +29,6 @@ router.put(
   paymentController.paymentConfirm
 );
 
-// Total sales
-router.get("/total-sales", auth(), paymentController.totalSales);
-
 router.get("/", auth(), paymentController.getPaymentList);
 
 router.get("/:id", auth(), paymentController.getPaymentById);
