@@ -78,6 +78,17 @@ const activePlans = catchAsync(async (req, res) => {
   });
 });
 
+const yearSignUp = catchAsync(async (req, res) => {
+  const result = await partnerService.yearSignUpIntoDb(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Year Signup retrieved successfully",
+    data: result,
+  });
+});
+
 const getPartnerById = catchAsync(async (req, res) => {
   const result = await partnerService.getByIdFromDb(req.params.id);
   sendResponse(res, {
@@ -119,4 +130,5 @@ export const partnerController = {
   viewProfile,
   myWallet,
   activePlans,
+  yearSignUp,
 };

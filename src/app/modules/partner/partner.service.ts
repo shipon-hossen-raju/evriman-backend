@@ -165,6 +165,71 @@ const activePlansIntoDb = async (id: string) => {
   return { users, usersCount };
 };
 
+// year signup users
+const yearSignUpIntoDb = async (id: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      email: true,
+      businessName: true,
+      accountNumber: true,
+      accountHolderName: true,
+      bankName: true,
+      address: true,
+      fullName: true,
+      role: true,
+      loginType: true,
+    },
+  });
+
+  // Partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  // user links
+  const usersLinked = await prisma.user.findMany({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      userImage: true,
+      createdAt: true,
+    },
+  });
+
+  // year signup
+  const currentYear = new Date().getFullYear();
+  const yearSignUp = usersLinked.filter((user) => {
+    const createdAtYear = new Date(user.createdAt).getFullYear();
+    return createdAtYear === currentYear;
+  });
+  const createdAtYearCount = usersLinked.filter((user) => {
+    const createdAtYear = new Date(user.createdAt).getFullYear();
+    return createdAtYear === currentYear;
+  }).length;
+
+
+  const result = {
+    partnerCode,
+    createdAtYearCount,
+    yearSignUp,
+  };
+
+  return result;
+};
+
 const getPartnerProfileIntoDb = async (id: string) => {
   const userData = await prisma.user.findUnique({
     where: {
@@ -392,4 +457,5 @@ export const partnerService = {
   viewProfileIntoDb,
   myWalletIntoDb,
   activePlansIntoDb,
+  yearSignUpIntoDb
 };

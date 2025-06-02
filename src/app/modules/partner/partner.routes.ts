@@ -51,6 +51,13 @@ partnerRouter.get(
   partnerController.activePlans
 );
 
+// year signup
+partnerRouter.get(
+  "/year-signup",
+  auth(UserRole.PARTNER),
+  partnerController.yearSignUp
+);
+
 partnerRouter.get("/:id", auth(), partnerController.getPartnerById);
 
 partnerRouter.put(
