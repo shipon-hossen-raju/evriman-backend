@@ -48,7 +48,7 @@ const usersLinkedIntoDb = async (id: string) => {
       email: true,
       userImage: true,
       createdAt: true,
-      address: true
+      address: true,
     },
   });
 
@@ -104,9 +104,9 @@ const viewProfileIntoDb = async (profileId: string) => {
       ContactList: true,
       _count: {
         select: {
-          ContactList: true
-        }
-      }
+          ContactList: true,
+        },
+      },
     },
   });
 
@@ -309,14 +309,21 @@ const getPartnerProfileIntoDb = async (id: string) => {
   }, 0);
 
   // find active plans
-  const findUserActivePlanCount = await prisma.payment.count({
+  const findUserActivePlanCount = await prisma.payment.findMany({
     where: {
       user: {
         referralCodeUsed: partnerCode?.partnerCode,
       },
       status: "COMPLETED",
     },
+    select: {
+      subscriptionPlanId: true,
+    },
   });
+  // To get unique subscriptionPlanIds:
+  const uniqueSubscriptionPlanIds = [
+    ...new Set(findUserActivePlanCount.map((p) => p.subscriptionPlanId)),
+  ];
 
   // year signup
   const currentYear = new Date().getFullYear();
@@ -347,7 +354,7 @@ const getPartnerProfileIntoDb = async (id: string) => {
     usersLinked,
     usersLinkedCount,
     myWallet: calculateCommission,
-    activePlanCount: findUserActivePlanCount,
+    activePlanCount: uniqueSubscriptionPlanIds?.length || 0,
     yearSignUp,
     daysToPayout,
   };

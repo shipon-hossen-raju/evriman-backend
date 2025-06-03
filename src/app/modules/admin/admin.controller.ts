@@ -1,7 +1,7 @@
-import httpStatus from 'http-status';
-import { adminService } from './admin.service';
-import catchAsync from '../../../shared/catchAsync';
-import sendResponse from '../../../shared/sendResponse';
+import httpStatus from "http-status";
+import catchAsync from "../../../shared/catchAsync";
+import sendResponse from "../../../shared/sendResponse";
+import { adminService } from "./admin.service";
 
 // const createAdmin = catchAsync(async (req, res) => {
 //   const result = await adminService.createIntoDb(req.body);
@@ -18,7 +18,7 @@ const getAdminList = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Admin list retrieved successfully',
+    message: "Admin list retrieved successfully",
     data: result,
   });
 });
@@ -40,11 +40,24 @@ const totalSales = catchAsync(async (req, res) => {
 
 // Partner manage
 const partnerManage = catchAsync(async (req, res) => {
-  const result = await adminService.partnerManageIntoDb(
-    // {
-    // topSales: (req.query.topSales as string) || "",
-    // }
-  );
+  const result = await adminService.partnerManageIntoDb(req.body.topSales);
+  // const result = await adminService.totalSalesIntoDb({
+  //   year: (req.query.year as string) || "",
+  //   plan: (req.query.plan as string) || "",
+  // });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Total Sales retrieved successfully",
+    data: result,
+  });
+});
+
+const partnerSingleProfile = catchAsync(async (req, res) => {
+  const result = await adminService.partnerSingleProfileIntoDb({
+    profileId: req.params.profileId,
+  });
   // const result = await adminService.totalSalesIntoDb({
   //   year: (req.query.year as string) || "",
   //   plan: (req.query.plan as string) || "",
@@ -93,6 +106,7 @@ export const adminController = {
   getAdminList,
   totalSales,
   partnerManage,
+  partnerSingleProfile,
   // getAdminById,
   // updateAdmin,
   // deleteAdmin,

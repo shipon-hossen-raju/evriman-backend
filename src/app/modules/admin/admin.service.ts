@@ -162,9 +162,7 @@ const totalSalesIntoDb = async ({
 
   return { usersAndCount, total };
 };
-const partnerManageIntoDb = async ({
-  topSales,
-}: { topSales?: Boolean } = {}) => {
+const partnerManageIntoDb = async (topSales: Boolean) => {
   // manage partners
   const allPartnersCount = await prisma.user.count({
     where: {
@@ -186,8 +184,9 @@ const partnerManageIntoDb = async ({
     shortCode: string | null;
     accountNumber: string | null;
     partnerCode?: string | null;
+    usersLinkedCount?: number;
+    currentBalance?: number;
   };
-
   const allPartners: PartnerWithCode[] = await prisma.user.findMany({
     where: {
       role: "PARTNER",
@@ -197,7 +196,7 @@ const partnerManageIntoDb = async ({
       id: true,
       userId: true,
       partnerImage: true,
-      businessName: true, 
+      businessName: true,
       fullName: true,
       phoneNumber: true,
       address: true,
@@ -205,7 +204,7 @@ const partnerManageIntoDb = async ({
       accountHolderName: true,
       shortCode: true,
       accountNumber: true,
-    }
+    },
   });
 
   if (!allPartners) throw new Error("Partners not found");
@@ -226,44 +225,156 @@ const partnerManageIntoDb = async ({
     partnerCodes.map((pc) => [pc.userId, pc.partnerCode])
   );
 
-  allPartners.forEach((partner) => {
-    (partner as any).partnerCode = partnerCodeMap.get(partner.id) || null;
-  });
+  // For each partner, calculate commission (currentBalance) and usersLinkedCount
+  for (const partner of allPartners) {
+    const partnerCode = partnerCodeMap.get(partner.id) || null;
+    (partner as any).partnerCode = partnerCode;
 
-  // Find total commission amount grouped by commissionReceiverId
-  const partnerCommissions = await prisma.payment.groupBy({
-    by: ["commissionReceiverId"],
-    where: {
-      commissionReceiverId: {
-        in: allPartners.map((code) => code.id),
+    // Calculate users linked count
+    const usersLinkedCount = await prisma.user.count({
+      where: {
+        referralCodeUsed: partnerCode,
       },
-    },
-    _sum: {
-      commissionAmount: true,
-    },
-  });
-  
-  // find total users linked by partnerCode
-  // const linkedUserCountByPartnerCode = await prisma.user.findMany({
-  //   where: {
-  //     referralCodeUsed: {
-  //       in: allPartners.map((partner) => partner.partnerCode),
-  //     },
-  //   },
-  // });
+    });
+    (partner as any).usersLinkedCount = usersLinkedCount;
 
-  console.log(" partnerCommission ", partnerCommissions);
+    // Calculate current balance (commission)
+    const userWallet = await prisma.payment.findMany({
+      where: {
+        userUsedReferCode: partnerCode,
+        status: "COMPLETED",
+      },
+      select: {
+        commissionAmount: true,
+      },
+    });
+    const currentBalance = userWallet.reduce((total, payment) => {
+      return total + (payment.commissionAmount || 0);
+    }, 0);
+    (partner as any).currentBalance = currentBalance;
+  }
 
-  // Map commissionReceiverId to commissionAmount
-  const partnerAmountFind = partnerCommissions.map((item) => ({
-    commissionReceiverId: item.commissionReceiverId,
-    commissionAmount: item._sum.commissionAmount ?? 0,
-  }));
+  let partnerData = [];
+  if (topSales) {
+    partnerData = allPartners
+      .sort((a, b) => (b.currentBalance ?? 0) - (a.currentBalance ?? 0))
+      .filter((p) => p.currentBalance !== 0);
+  } else {
+    partnerData = allPartners.sort(
+      (a, b) => (a.currentBalance ?? 0) - (b.currentBalance ?? 0)
+    );
+  }
 
   return {
     allPartnersCount,
-    allPartners: allPartners,
-    partnerAmountFind,
+    allPartners: partnerData,
+  };
+};
+
+const partnerSingleProfileIntoDb = async ({
+  profileId,
+}: {
+  profileId: string;
+}) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id: profileId,
+    },
+    select: {
+      id: true,
+      email: true,
+      phoneNumber: true,
+      businessName: true,
+      accountNumber: true,
+      accountHolderName: true,
+      bankName: true,
+      shortCode: true,
+      address: true,
+      fullName: true,
+      role: true,
+      loginType: true,
+      partnerImage: true,
+    },
+  });
+
+  // Partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  // user refer linked count
+  const usersLinkedCount = await prisma.user.count({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+  });
+
+  // find active plans
+  const userActivePlanCount = await prisma.payment.findMany({
+    where: {
+      user: {
+        referralCodeUsed: partnerCode?.partnerCode,
+      },
+      status: "COMPLETED",
+    },
+    select: {
+      subscriptionPlanId: true,
+    },
+  });
+  // To get unique subscriptionPlanIds:
+  const uniqueSubscriptionPlanIds = [
+    ...new Set(userActivePlanCount.map((p) => p.subscriptionPlanId)),
+  ];
+
+  // user wallet
+  // Current year commission
+  const userWallet = await prisma.payment.findMany({
+    where: {
+      userUsedReferCode: partnerCode?.partnerCode,
+      status: "COMPLETED",
+      createdAt: {
+        gte: new Date(new Date().getFullYear(), 0, 1),
+        lt: new Date(new Date().getFullYear() + 1, 0, 1),
+      },
+    },
+    select: {
+      commissionAmount: true,
+    },
+  });
+  const calculateCommission = userWallet.reduce((total, payment) => {
+    return total + (payment.commissionAmount || 0);
+  }, 0);
+
+  // Previous year commission
+  const prevYear = new Date().getFullYear() - 1;
+  const prevYearWallet = await prisma.payment.findMany({
+    where: {
+      userUsedReferCode: partnerCode?.partnerCode,
+      status: "COMPLETED",
+      createdAt: {
+        gte: new Date(prevYear, 0, 1),
+        lt: new Date(prevYear + 1, 0, 1),
+      },
+    },
+    select: {
+      commissionAmount: true,
+    },
+  });
+  const previousYearCommission = prevYearWallet.reduce((total, payment) => {
+    return total + (payment.commissionAmount || 0);
+  }, 0);
+
+  return {
+    previousYearCommission,
+    usersLinkedCount,
+    userActivePlanCount: uniqueSubscriptionPlanIds.length,
+    currentBalance: calculateCommission,
+    userData,
   };
 };
 
@@ -271,4 +382,5 @@ export const adminService = {
   getAdminHome,
   totalSalesIntoDb,
   partnerManageIntoDb,
+  partnerSingleProfileIntoDb,
 };
