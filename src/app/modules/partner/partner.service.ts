@@ -99,7 +99,14 @@ const viewProfileIntoDb = async (profileId: string) => {
       createdAt: true,
       userId: true,
       phoneNumber: true,
-      address: true
+      address: true,
+      contactLimit: true,
+      ContactList: true,
+      _count: {
+        select: {
+          ContactList: true
+        }
+      }
     },
   });
 

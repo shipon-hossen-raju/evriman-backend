@@ -48,6 +48,13 @@ const loginUser = async (payload: {
   if (!isCorrectPassword) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Password incorrect!");
   }
+
+  // Update lastLogin field
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: { lastLogin: new Date() },
+  });
+
   const accessToken = jwtHelpers.generateToken(
     {
       id: userData?.id,
@@ -65,6 +72,7 @@ const loginUser = async (payload: {
     role: userData?.role,
     isCompleteProfile: userData.isCompleteProfile,
     isCompletePartnerProfile: userData.isCompletePartnerProfile,
+    lastLogin: new Date(),
   };
 };
 
@@ -80,7 +88,27 @@ const getMyProfile = async (id: string) => {
       deathVerification: true,
       memoryClaimRequests: true,
       offerCodes: true,
-      payments: true,
+      payments: {
+        select: {
+          amountPay: true,
+          offerCodeId: true,
+          subscriptionPlan: true,
+          id: true, 
+          endDate: true,
+          startDate: true,
+          amountOfferCode: true,
+          amountPricing: true,
+          amountUserPoint: true, 
+          commissionAmount: true,
+          commissionReceiverId: true,
+          commissionType: true,
+          contactLimit: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 1, 
+      },
       UserDynamicFieldValue: true,
       referredUsers: true
     },
@@ -144,8 +172,12 @@ const getMyProfile = async (id: string) => {
   }, {});
 
   if (userProfile) {
-    const { password, UserDynamicFieldValue, ...profileWithoutPassword } =
-      userProfile as any;
+    const {
+      password,
+      UserDynamicFieldValue,
+      referredUsers,
+      ...profileWithoutPassword
+    } = userProfile as any;
 
     const userData = {
       ...profileWithoutPassword,

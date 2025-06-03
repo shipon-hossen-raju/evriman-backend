@@ -1,9 +1,7 @@
+import { UserRole } from "@prisma/client";
 import express from "express";
 import auth from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
 import { adminController } from "./admin.controller";
-import { adminValidation } from "./admin.validation";
-import { UserRole } from "@prisma/client";
 
 const router = express.Router();
 
@@ -22,6 +20,13 @@ router.get(
 
 // Total sales
 router.get("/total-sales", auth(), adminController.totalSales);
+
+// Partner Manage
+router.get(
+  "/partner-manage",
+  // auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.partnerManage
+);
 
 // router.get("/:id", auth(UserRole.ADMIN, UserRole.SUPER_ADMIN), adminController.getAdminList);
 

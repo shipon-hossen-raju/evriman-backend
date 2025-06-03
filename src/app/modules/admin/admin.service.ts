@@ -41,18 +41,18 @@ const getAdminHome = async () => {
   const partnerRequest = await prisma.user.count({
     where: {
       isPartner: true,
-      role: "USER"
-    }
+      role: "USER",
+    },
   });
 
   // manage subscriptions
   const subscriptionPlan = await prisma.subscriptionPlan.count({});
 
-  // death verification 
+  // death verification
   const deathVerification = await prisma.deathVerification.count({});
 
   // claim memories
-  const claimMemories = await prisma.memoryClaimRequest.count({})
+  const claimMemories = await prisma.memoryClaimRequest.count({});
 
   return {
     salesPerformance: salesUserCount,
@@ -162,8 +162,113 @@ const totalSalesIntoDb = async ({
 
   return { usersAndCount, total };
 };
+const partnerManageIntoDb = async ({
+  topSales,
+}: { topSales?: Boolean } = {}) => {
+  // manage partners
+  const allPartnersCount = await prisma.user.count({
+    where: {
+      role: "PARTNER",
+      isPartner: true,
+    },
+  });
+
+  type PartnerWithCode = {
+    id: string;
+    userId: string;
+    partnerImage: string;
+    businessName: string | null;
+    fullName: string;
+    phoneNumber: string;
+    address: string | null;
+    bankName: string | null;
+    accountHolderName: string | null;
+    shortCode: string | null;
+    accountNumber: string | null;
+    partnerCode?: string | null;
+  };
+
+  const allPartners: PartnerWithCode[] = await prisma.user.findMany({
+    where: {
+      role: "PARTNER",
+      isPartner: true,
+    },
+    select: {
+      id: true,
+      userId: true,
+      partnerImage: true,
+      businessName: true, 
+      fullName: true,
+      phoneNumber: true,
+      address: true,
+      bankName: true,
+      accountHolderName: true,
+      shortCode: true,
+      accountNumber: true,
+    }
+  });
+
+  if (!allPartners) throw new Error("Partners not found");
+
+  // Partner code
+  const partnerCodes = await prisma.partnerCode.findMany({
+    where: {
+      userId: {
+        in: allPartners.map((p) => p.id),
+      },
+    },
+    select: {
+      userId: true,
+      partnerCode: true,
+    },
+  });
+  const partnerCodeMap = new Map(
+    partnerCodes.map((pc) => [pc.userId, pc.partnerCode])
+  );
+
+  allPartners.forEach((partner) => {
+    (partner as any).partnerCode = partnerCodeMap.get(partner.id) || null;
+  });
+
+  // Find total commission amount grouped by commissionReceiverId
+  const partnerCommissions = await prisma.payment.groupBy({
+    by: ["commissionReceiverId"],
+    where: {
+      commissionReceiverId: {
+        in: allPartners.map((code) => code.id),
+      },
+    },
+    _sum: {
+      commissionAmount: true,
+    },
+  });
+  
+  // find total users linked by partnerCode
+  // const linkedUserCountByPartnerCode = await prisma.user.findMany({
+  //   where: {
+  //     referralCodeUsed: {
+  //       in: allPartners.map((partner) => partner.partnerCode),
+  //     },
+  //   },
+  // });
+
+  console.log(" partnerCommission ", partnerCommissions);
+
+  // Map commissionReceiverId to commissionAmount
+  const partnerAmountFind = partnerCommissions.map((item) => ({
+    commissionReceiverId: item.commissionReceiverId,
+    commissionAmount: item._sum.commissionAmount ?? 0,
+  }));
+
+  return {
+    allPartnersCount,
+    allPartners: allPartners,
+    partnerAmountFind,
+  };
+};
 
 export const adminService = {
   getAdminHome,
   totalSalesIntoDb,
+  partnerManageIntoDb,
 };

@@ -10,6 +10,7 @@ export const userDynamicFieldValueSchema = z.object({
   value: z.string().min(1, "Value is required"),
   category: z.string().min(1, "Category is required"),
   fieldType: z.nativeEnum(DynamicFieldType),
+  text: z.string().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
 });

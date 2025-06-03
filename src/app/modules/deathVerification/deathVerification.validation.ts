@@ -25,6 +25,7 @@ const updateSchema = z.object({
 });
 
 const statusUpdateSchema = z.object({
+  extraNote: z.string().optional(),
   status: z.nativeEnum(VerificationStatus),
 });
 

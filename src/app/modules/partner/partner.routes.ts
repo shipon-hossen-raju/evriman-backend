@@ -40,7 +40,7 @@ partnerRouter.get(
 // view profile
 partnerRouter.get(
   "/view-profile/:profileId",
-  auth(UserRole.PARTNER),
+  auth(),
   partnerController.viewProfile
 );
 

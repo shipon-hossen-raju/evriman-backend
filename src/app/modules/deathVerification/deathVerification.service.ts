@@ -19,7 +19,7 @@ const getListFromDb = async () => {
         },
         {
           status: "PENDING",
-        }
+        },
       ],
     },
   });
@@ -44,8 +44,25 @@ const getByIdFromDb = async (id: string) => {
       isDeceased: true,
       email: true,
       fullName: true,
+      phoneNumber: true,
+      dob: true,
+      lastLogin: true,
+      ContactList: true,
+      _count: {
+        select: {
+          ContactList: {
+            where: {
+              isDeath: true,
+              isDeathNotify: true,
+            },
+          },
+        },
+      },
     },
   });
+
+  // contact list
+  // const findContactList
 
   return { ...result, user: { ...user } };
 };
@@ -65,7 +82,7 @@ const updateIntoDb = async (id: string, data: any) => {
 // status update into db
 const statusUpdateIntoDb = async (
   id: string,
-  payload: { status: VerificationStatus }
+  payload: { status: VerificationStatus; extraNote: string }
 ) => {
   // find the death verification by ID
   const deathCertificate = await prisma.deathVerification.findUnique({
@@ -89,6 +106,7 @@ const statusUpdateIntoDb = async (
       id: true,
       userId: true,
       isDeceased: true,
+      email: true,
     },
   });
   if (!user) {
@@ -124,9 +142,23 @@ const statusUpdateIntoDb = async (
       throw new ApiError(httpStatus.NOT_FOUND, "User not found");
     }
 
+    console.log("statusCode ", statusCode);
+    // contact list update
+    if (statusCode === "CHECKING") {
+      // Update all contactList entries for this user to set isDeathNotify to true
+      await prisma.contactList.updateMany({
+        where: {
+          userId: user.id,
+        },
+        data: {
+          isDeathNotify: true,
+        },
+      });
+    }
+
     const result = await prisma.deathVerification.update({
       where: { id },
-      data: { status: statusCode },
+      data: { status: statusCode, extraNote: payload.extraNote || "" },
     });
     return result;
   });
