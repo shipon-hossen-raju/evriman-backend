@@ -107,7 +107,12 @@ const totalSalesIntoDb = async ({
         },
       },
       status: true,
-      subscriptionPlan: true,
+      subscriptionPlan: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
       pricingOption: {
         select: {
           id: true,
@@ -149,19 +154,25 @@ const totalSalesIntoDb = async ({
         .map((p) => [p.pricingOption!.id, p.pricingOption])
     ).values(),
   ];
-
   const usersAndCount = pricingUser.map(({ pricingOptionId, userIds }) => {
     const pricingOption = pricingOptions.find(
       (po) => po?.id === pricingOptionId
     );
+    // Find the first payment with this pricingOptionId to get the subscriptionPlan
+    const paymentWithPlan = payments.find(
+      (p) => p.pricingOption?.id === pricingOptionId
+    );
+    
     return {
       userCount: userIds.size,
       pricingOption,
+      subscriptionPlan: paymentWithPlan?.subscriptionPlan || null,
     };
   });
 
   return { usersAndCount, total };
 };
+
 const partnerManageIntoDb = async (topSales: Boolean) => {
   // manage partners
   const allPartnersCount = await prisma.user.count({

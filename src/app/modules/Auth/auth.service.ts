@@ -109,7 +109,17 @@ const getMyProfile = async (id: string) => {
         },
         take: 1, 
       },
-      UserDynamicFieldValue: true,
+      UserDynamicFieldValue: {
+        select: {
+          id: true,
+          category: true,
+          value: true,
+          fieldName: true,
+          fieldType: true,
+          text: true,
+          createdAt: true
+        }
+      },
       referredUsers: true
     },
   });
@@ -144,6 +154,8 @@ const getMyProfile = async (id: string) => {
         id: string;
         label: string;
         fieldName: string;
+        text: string;
+        value: string;
         type: DynamicFieldType;
         options: string[];
         status: DynamicFieldStatus;
@@ -159,12 +171,14 @@ const getMyProfile = async (id: string) => {
         id: field.id,
         label: field.fieldName,
         fieldName: field.fieldName,
+        text: field.text ?? "",
+        value: field.value ?? "",
         type: field.fieldType,
-        options: [],
-        status: DynamicFieldStatus.PUBLISHED || DynamicFieldStatus.DRAFT,
+        options: [] as string[],
+        status: DynamicFieldStatus.PUBLISHED,
         category: field.category,
         createdAt: field.createdAt,
-        updatedAt: field.updatedAt,
+        updatedAt: field.createdAt,
       }));
 
     acc[category] = fields;
