@@ -1,6 +1,6 @@
 import express from "express";
 import { fileUploader } from "../../../helpars/fileUploader";
-import { parseBodyFileUploader } from "./deathVerification.parseBodyFileUploader";
+import { parseBodyFileUploader, updateProfile } from "./deathVerification.parseBodyFileUploader";
 import { deathVerificationValidation } from "./deathVerification.validation";
 import validateRequest from "../../middlewares/validateRequest";
 import { deathVerificationController } from "./deathVerification.controller";
@@ -12,7 +12,7 @@ const router = express.Router();
 router.post(
   "/create",
   // auth(),
-  fileUploader.uploadSingle,
+  updateProfile,
   parseBodyFileUploader,
   validateRequest(deathVerificationValidation.createSchema),
   deathVerificationController.createDeathVerification

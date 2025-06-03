@@ -5,8 +5,10 @@ const createSchema = z.object({
   requesterName: z.string().min(1, "Requester name is required"),
   requesterEmail: z.string().email("Invalid email address"),
   requesterPhone: z.string().min(5, "Phone number is required"),
-
+  requesterImage: z.string().min(1, "requesterImage is required"),
+  
   deceasedName: z.string().min(1, "Deceased name is required"),
+  deathCertificate: z.string().min(1, "deathCertificate is required"),
   deceasedProfileId: z.string().min(1, "Profile ID is required"),
   relationship: z.string().min(1, "Relationship is required"),
   deceasedDob: z.coerce.date({
@@ -15,7 +17,6 @@ const createSchema = z.object({
   }),
 
   optionalNote: z.string().optional(),
-
 });
 
 const updateSchema = z.object({
@@ -24,6 +25,7 @@ const updateSchema = z.object({
 });
 
 const statusUpdateSchema = z.object({
+  extraNote: z.string().optional(),
   status: z.nativeEnum(VerificationStatus),
 });
 

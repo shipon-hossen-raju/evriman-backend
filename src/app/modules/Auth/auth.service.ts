@@ -1,4 +1,10 @@
-import { LoginType, UserStatus } from "@prisma/client";
+import {
+  DynamicFieldCategory,
+  DynamicFieldStatus,
+  DynamicFieldType,
+  LoginType,
+  UserStatus,
+} from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
@@ -42,6 +48,13 @@ const loginUser = async (payload: {
   if (!isCorrectPassword) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Password incorrect!");
   }
+
+  // Update lastLogin field
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: { lastLogin: new Date() },
+  });
+
   const accessToken = jwtHelpers.generateToken(
     {
       id: userData?.id,
@@ -54,7 +67,13 @@ const loginUser = async (payload: {
     config.jwt.expires_in as string
   );
 
-  return { token: accessToken };
+  return {
+    token: accessToken,
+    role: userData?.role,
+    isCompleteProfile: userData.isCompleteProfile,
+    isCompletePartnerProfile: userData.isCompletePartnerProfile,
+    lastLogin: new Date(),
+  };
 };
 
 // get user profile
@@ -69,9 +88,56 @@ const getMyProfile = async (id: string) => {
       deathVerification: true,
       memoryClaimRequests: true,
       offerCodes: true,
-      payments: true,
+      payments: {
+        select: {
+          amountPay: true,
+          offerCodeId: true,
+          subscriptionPlan: true,
+          id: true, 
+          endDate: true,
+          startDate: true,
+          amountOfferCode: true,
+          amountPricing: true,
+          amountUserPoint: true, 
+          commissionAmount: true,
+          commissionReceiverId: true,
+          commissionType: true,
+          contactLimit: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 1, 
+      },
+      UserDynamicFieldValue: {
+        select: {
+          id: true,
+          category: true,
+          value: true,
+          fieldName: true,
+          fieldType: true,
+          text: true,
+          createdAt: true
+        }
+      },
+      referredUsers: true
     },
   });
+
+  // find memories
+  const memoriesData = await prisma.userMemory.findMany({
+    where: {
+      userId: id
+    }
+  })
+
+  // Get referredUsers count and data
+  let referredUsersCount = 0;
+  let referredUsersData: any[] = [];
+  if (userProfile && userProfile.referredUsers) {
+    referredUsersCount = userProfile.referredUsers.length;
+    referredUsersData = userProfile.referredUsers;
+  }
 
   // find partner code
   const partnerCode = await prisma.partnerCode.findUnique({
@@ -80,12 +146,64 @@ const getMyProfile = async (id: string) => {
     },
   });
 
+  // group by Category for UserDynamicFieldValue
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+    Record<
+      string,
+      {
+        id: string;
+        label: string;
+        fieldName: string;
+        text: string;
+        value: string;
+        type: DynamicFieldType;
+        options: string[];
+        status: DynamicFieldStatus;
+        category: DynamicFieldCategory;
+        createdAt: Date;
+        updatedAt: Date;
+      }[]
+    >
+  >((acc, category) => {
+    const fields = (userProfile?.UserDynamicFieldValue ?? [])
+      .filter((field) => field.category === category)
+      .map((field) => ({
+        id: field.id,
+        label: field.fieldName,
+        fieldName: field.fieldName,
+        text: field.text ?? "",
+        value: field.value ?? "",
+        type: field.fieldType,
+        options: [] as string[],
+        status: DynamicFieldStatus.PUBLISHED,
+        category: field.category,
+        createdAt: field.createdAt,
+        updatedAt: field.createdAt,
+      }));
+
+    acc[category] = fields;
+    return acc;
+  }, {});
+
   if (userProfile) {
-    const { password, ...profileWithoutPassword } = userProfile as any;
-    return { ...profileWithoutPassword, partnerCode };
+    const {
+      password,
+      UserDynamicFieldValue,
+      referredUsers,
+      ...profileWithoutPassword
+    } = userProfile as any;
+
+    const userData = {
+      ...profileWithoutPassword,
+      referredUsersCount,
+      referredUsersData,
+      partnerCode,
+    };
+
+    return { userData, memoriesData, groupedByCategory };
   }
 
-  return userProfile;
+  return { userProfile, memoriesData, groupedByCategory };
 };
 
 // change password

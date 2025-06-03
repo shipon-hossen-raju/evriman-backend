@@ -63,6 +63,34 @@ const getPartner = catchAsync(async (req, res) => {
 });
 
 // get all user form db
+const getNotification = catchAsync(async (req: Request, res: Response) => {
+  console.log(req.user.id)
+  const result = await userService.getNotificationIntoDb(req.user.id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users retrieve successfully!",
+    data: result,
+  });
+});
+
+// get all user form db
+const notificationDeathStatus = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.notificationDeathStatusIntoDb(
+    req.user.id,
+    req.body
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users retrieve successfully!",
+    data: result,
+  });
+});
+
+// get all user form db
 const getUsers = catchAsync(async (req: Request, res: Response) => {
   const filters = pick(req.query, userFilterableFields);
   const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
@@ -154,4 +182,6 @@ export const userController = {
   updatePartnerStatus,
   profileImageUpload,
   viewProfile,
+  getNotification,
+  notificationDeathStatus,
 };

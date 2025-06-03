@@ -1,4 +1,12 @@
-import { LoginType, Prisma, User, VerificationStatus } from "@prisma/client";
+import {
+  DynamicFieldCategory,
+  DynamicFieldStatus,
+  DynamicFieldType,
+  LoginType,
+  Prisma,
+  User,
+  VerificationStatus,
+} from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { differenceInYears } from "date-fns";
 import { Request } from "express";
@@ -136,6 +144,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       updatedAt: true,
       otp: env,
       age: true,
+      isCompleteProfile: true,
+      isCompletePartnerProfile: true,
     };
     if (justEmail?.id && justEmail?.email) {
       result = await tx.user.update({
@@ -175,6 +185,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
           ...userData,
           userId: userId.toString(),
           referralCode,
+          lastLogin: new Date(),
           referralCodeUsed: payload.referralCodeUsed,
         },
         select: defaultDataShow,
@@ -200,7 +211,14 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       `Welcome to our service! Your OTP is: ${result.otp}`
     );
 
-    return { result, token, otp };
+    return {
+      result,
+      token,
+      otp,
+      role: result?.role,
+      isCompleteProfile: result.isCompleteProfile,
+      isCompletePartnerProfile: result.isCompletePartnerProfile,
+    };
   });
 };
 
@@ -415,42 +433,159 @@ const getUsersFromDb = async (
 
 // view profile
 const viewProfile = async (profileId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id: profileId, role: "USER" },
-    select: {
-      id: true,
-      userId: true,
-      fullName: true,
-      email: true,
-      role: true,
-      phoneNumber: true,
-      dob: true,
-      address: true,
-      referralCode: true,
-      userImage: true,
-      createdAt: true,
-      updatedAt: true,
-      isPartner: true,
-      isUser: true,
-      status: true,
-      age: true,
-      isDeceased: true,
-      isVerified: true,
-      partnerStatus: true,
+  // const user = await prisma.user.findUnique({
+  //   where: { id: profileId, role: "USER" },
+  //   select: {
+  //     id: true,
+  //     userId: true,
+  //     fullName: true,
+  //     email: true,
+  //     role: true,
+  //     phoneNumber: true,
+  //     dob: true,
+  //     address: true,
+  //     referralCode: true,
+  //     userImage: true,
+  //     createdAt: true,
+  //     updatedAt: true,
+  //     isPartner: true,
+  //     isUser: true,
+  //     status: true,
+  //     age: true,
+  //     isDeceased: true,
+  //     isVerified: true,
+  //     partnerStatus: true,
+  //     ContactList: true,
+  //     memories: true,
+  //     UserDynamicFieldValue: true,
+  //     _count: {
+  //       select: {
+  //         ContactList: true,
+  //         memories: true,
+  //         UserDynamicFieldValue: true,
+  //       },
+  //     },
+  //   },
+  // });
+
+  // if (!user) {
+  //   throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  // }
+
+  // return user;
+
+  const userProfile = await prisma.user.findUnique({
+    where: {
+      id: profileId,
+    },
+    include: {
       ContactList: true,
-      _count: {
+      memories: true,
+      deathVerification: true,
+      memoryClaimRequests: true,
+      offerCodes: true,
+      payments: {
         select: {
-          ContactList: true,
+          amountPay: true,
+          offerCodeId: true,
+          subscriptionPlan: true,
+          id: true,
+          endDate: true,
+          startDate: true,
+          amountOfferCode: true,
+          amountPricing: true,
+          amountUserPoint: true,
+          commissionAmount: true,
+          commissionReceiverId: true,
+          commissionType: true,
+          contactLimit: true,
         },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
       },
+      UserDynamicFieldValue: true,
+      referredUsers: true,
     },
   });
 
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  // find memories
+  const memoriesData = await prisma.userMemory.findMany({
+    where: {
+      userId: profileId,
+    },
+  });
+
+  // Get referredUsers count and data
+  let referredUsersCount = 0;
+  let referredUsersData: any[] = [];
+  if (userProfile && userProfile.referredUsers) {
+    referredUsersCount = userProfile.referredUsers.length;
+    referredUsersData = userProfile.referredUsers;
   }
 
-  return user;
+  // find partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userProfile?.id,
+    },
+  });
+
+  // group by Category for UserDynamicFieldValue
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+    Record<
+      string,
+      {
+        id: string;
+        label: string;
+        fieldName: string;
+        type: DynamicFieldType;
+        options: string[];
+        status: DynamicFieldStatus;
+        category: DynamicFieldCategory;
+        createdAt: Date;
+        updatedAt: Date;
+      }[]
+    >
+  >((acc, category) => {
+    const fields = (userProfile?.UserDynamicFieldValue ?? [])
+      .filter((field) => field.category === category)
+      .map((field) => ({
+        id: field.id,
+        label: field.fieldName,
+        fieldName: field.fieldName,
+        type: field.fieldType,
+        options: [],
+        status: DynamicFieldStatus.PUBLISHED || DynamicFieldStatus.DRAFT,
+        category: field.category,
+        createdAt: field.createdAt,
+        updatedAt: field.updatedAt,
+      }));
+
+    acc[category] = fields;
+    return acc;
+  }, {});
+
+  if (userProfile) {
+    const {
+      password,
+      UserDynamicFieldValue,
+      referredUsers,
+      ...profileWithoutPassword
+    } = userProfile as any;
+
+    const userData = {
+      ...profileWithoutPassword,
+      referredUsersCount,
+      referredUsersData,
+      partnerCode,
+    };
+
+    return { userData, memoriesData, groupedByCategory };
+  }
+
+  return { userProfile, memoriesData, groupedByCategory };
 };
 
 // reterive all partner from the database also searching anf filtering
@@ -534,6 +669,7 @@ const getAllPartnerFromDb = async (
   if (!result || result.length === 0) {
     throw new ApiError(404, "No active users found");
   }
+
   return {
     meta: {
       page,
@@ -571,6 +707,88 @@ const getPartner = async (id: string) => {
   });
 
   return result;
+};
+
+// get partner
+const getNotificationIntoDb = async (id: string) => {
+  // find user
+  const findUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, email: true, userId: true, ContactList: true },
+  });
+
+  // find death verification
+  const findDeathVerification = await prisma.deathVerification.findMany({
+    where: {
+      deceasedProfileId: findUser?.userId,
+      OR: [
+        {
+          status: "PENDING",
+        },
+        {
+          status: "CHECKING",
+        },
+      ],
+    },
+  });
+
+  // other contact list find
+  const othersContactList = await prisma.contactList.findMany({
+    where: {
+      email: findUser?.email,
+    },
+    select: {
+      user: true,
+    },
+  });
+
+  const findContactVerification = await prisma.contactList.findFirst({
+    where: {
+      email: findUser?.email,
+      isDeathNotify: true,
+    },
+  });
+
+  return {
+    findContactVerification,
+    deathVerification: findDeathVerification,
+    othersContactList,
+  };
+};
+
+const notificationDeathStatusIntoDb = async (
+  id: string,
+  payload: { status: boolean }
+) => {
+
+  console.log("payload ", payload);
+  const findUser = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  const findContactVerification = await prisma.contactList.findFirst({
+    where: {
+      email: findUser?.email,
+      isDeathNotify: true,
+    },
+  });
+
+  if (!findContactVerification) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Data Not Fount!")
+  }
+
+  const updateContact = await prisma.contactList.update({
+    where: {
+      id: findContactVerification.id,
+    },
+    data: {
+      isDeath: payload.status === true ? true : false
+    }
+  });
+
+  return updateContact;
 };
 
 // update partner status
@@ -807,4 +1025,6 @@ export const userService = {
   updatePartnerStatus,
   profileImageUpload,
   viewProfile,
+  getNotificationIntoDb,
+  notificationDeathStatusIntoDb,
 };

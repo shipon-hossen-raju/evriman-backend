@@ -21,6 +21,7 @@ enum LoginType {
 enum VerificationStatus {
   PENDING
   APPROVED
+  CHECKING
   REJECTED
 }
 
@@ -98,9 +99,12 @@ model User {
   shortCode         String?             @default("")
   partnerStatus     VerificationStatus? @default(PENDING)
 
-  isPartner Boolean   @default(false)
-  isUser    Boolean   @default(false)
-  isPaid    Boolean   @default(false)
+  isPartner                Boolean  @default(false)
+  isUser                   Boolean  @default(false)
+  isPaid                   Boolean  @default(false)
+  isCompleteProfile        Boolean  @default(false)
+  isCompletePartnerProfile Boolean  @default(false)
+  lastLogin                DateTime @default(now())
 
   payments Payment[] @relation("PaymentUser")
 
@@ -114,6 +118,7 @@ model DeathVerification {
   requesterName  String
   requesterEmail String
   requesterPhone String
+  requesterImage String
 
   deceasedName      String
   deceasedProfileId String
@@ -121,6 +126,7 @@ model DeathVerification {
   deceasedDob       DateTime
   deathCertificate  String
   optionalNote      String?
+  extraNote         String?
 
   status VerificationStatus @default(PENDING)
 
@@ -198,6 +204,9 @@ model ContactList {
   note         String?
   createdAt    DateTime @default(now())
 
+  isDeath       Boolean @default(false)
+  isDeathNotify Boolean @default(false)
+
   // Guardian Details (only for under 18)
   guardianName        String?
   guardianEmail       String?
@@ -270,8 +279,8 @@ model Payment {
   commissionType       CommissionType? // "REFERRAL" or "PARTNER"
   commissionAmount     Float? // Calculated commission amount
   commissionReceiverId String?         @db.ObjectId // User or Partner who receives commission
-  startDate DateTime
-  endDate   DateTime
+  startDate            DateTime
+  endDate              DateTime
 
   userId             String            @db.ObjectId
   user               User?             @relation("PaymentUser", fields: [userId], references: [id])
@@ -439,7 +448,8 @@ model UserDynamicFieldValue {
   user      User                 @relation(fields: [userId], references: [id])
   userId    String               @db.ObjectId
   fieldName String
-  value     String
+  value     String?
+  text     String?
   fieldType DynamicFieldType
   category  DynamicFieldCategory
   createdAt DateTime             @default(now())

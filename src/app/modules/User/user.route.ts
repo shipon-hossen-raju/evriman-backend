@@ -20,17 +20,10 @@ router.post(
 
 // partner complete profile
 router.put(
-  "/partner-complete/",
+  "/profile-complete/",
   auth(),
   validateRequest(userValidation.partnerCompleteProfileSchema),
   userController.partnerCompleteProfile
-);
-
-// partner complete profile
-router.get(
-  "/partner/all",
-  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  userController.getAllPartner
 );
 
 // partner complete profile
@@ -60,6 +53,17 @@ router.get("/user-view-profile/:profileId", auth(), userController.viewProfile);
 
 // *!get all  user
 router.get("/all", userController.getUsers);
+
+// get Notification
+router.get("/notification", auth(), userController.getNotification);
+
+// get Notification death status
+router.patch(
+  "/notification-death-status",
+  auth(),
+  validateRequest(userValidation.notificationDeathStatus),
+  userController.notificationDeathStatus
+);
 
 // *!profile user
 router.put(

@@ -72,9 +72,14 @@ const partnerStatusSchema = z.object({
   partnerStatus: z.nativeEnum(VerificationStatus)
 });
 
+const notificationDeathStatus = z.object({
+  status: z.boolean(),
+});
+
 
 export const userValidation = {
   CreateUserValidationSchema,
   partnerCompleteProfileSchema,
   partnerStatusSchema,
+  notificationDeathStatus,
 };

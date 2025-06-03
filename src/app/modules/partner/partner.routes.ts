@@ -40,7 +40,7 @@ partnerRouter.get(
 // view profile
 partnerRouter.get(
   "/view-profile/:profileId",
-  auth(UserRole.PARTNER),
+  auth(),
   partnerController.viewProfile
 );
 
@@ -49,6 +49,13 @@ partnerRouter.get(
   "/active-plans",
   auth(UserRole.PARTNER),
   partnerController.activePlans
+);
+
+// year signup
+partnerRouter.get(
+  "/year-signup",
+  auth(UserRole.PARTNER),
+  partnerController.yearSignUp
 );
 
 partnerRouter.get("/:id", auth(), partnerController.getPartnerById);

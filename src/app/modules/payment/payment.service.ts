@@ -221,7 +221,7 @@ const createPaymentRequest = async (
     const storedData = await prisma.payment.create({
       data: {
         ...storeDatabase,
-        status: "PENDING"
+        status: "PENDING",
       },
     });
 
@@ -377,5 +377,5 @@ export const paymentService = {
 
   createStripePaymentIntent,
   createPaymentRequest,
-  paymentConfirmIntoDb,
+  paymentConfirmIntoDb
 };

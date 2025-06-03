@@ -33,6 +33,7 @@ router.get("/", auth(), paymentController.getPaymentList);
 
 router.get("/:id", auth(), paymentController.getPaymentById);
 
+
 router.put(
   "/:id",
   auth(),

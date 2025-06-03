@@ -1,4 +1,4 @@
-import { DynamicField } from "@prisma/client";
+import { DynamicField, DynamicFieldCategory } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 import toSnakeCase from "../../../utils/toSnakeCase";
@@ -78,16 +78,12 @@ const getAllDynamicFields = async () => {
   });
 
   // Group by category
-  const groupedByCategory = allFields.reduce<Record<string, DynamicField[]>>(
-    (acc, field) => {
-      if (!acc[field.category]) {
-        acc[field.category] = [];
-      }
-      acc[field.category].push(field);
-      return acc;
-    },
-    {}
-  );
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+    Record<string, DynamicField[]>
+  >((acc, category) => {
+    acc[category] = allFields.filter((field) => field.category === category);
+    return acc;
+  }, {});
 
   return groupedByCategory;
 };
@@ -104,12 +100,9 @@ const getAllDynamicFieldsPublish = async () => {
   });
 
   // Group by category
-  const groupedByCategory = allFields.reduce<Record<string, DynamicField[]>>(
-    (acc, field) => {
-      if (!acc[field.category]) {
-        acc[field.category] = [];
-      }
-      acc[field.category].push(field);
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<Record<string, DynamicField[]>>(
+    (acc, category) => {
+      acc[category] = allFields.filter(field => field.category === category);
       return acc;
     },
     {}

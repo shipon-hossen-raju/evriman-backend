@@ -1,4 +1,4 @@
-import { UserDynamicFieldValue } from "@prisma/client";
+import { DynamicField, DynamicFieldCategory, UserDynamicFieldValue } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 
@@ -28,7 +28,18 @@ const updateDynamicUserData = async (
 const getAllDynamicUserData = async () => {
   const allDynamicUserData = await prisma.userDynamicFieldValue.findMany();
 
-  return allDynamicUserData;
+  // Group by category (using UserDynamicFieldValue type)
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<Record<string, UserDynamicFieldValue[]>>(
+    (acc, category) => {
+      acc[category] = allDynamicUserData.filter(
+        (field) => field.category === category
+      );
+      return acc;
+    },
+    {}
+  );
+
+  return groupedByCategory;
 };
 
 // Get dynamic User Data by userId Service

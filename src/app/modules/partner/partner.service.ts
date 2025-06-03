@@ -43,10 +43,12 @@ const usersLinkedIntoDb = async (id: string) => {
     },
     select: {
       id: true,
+      userId: true,
       fullName: true,
       email: true,
       userImage: true,
       createdAt: true,
+      address: true,
     },
   });
 
@@ -56,7 +58,6 @@ const usersLinkedIntoDb = async (id: string) => {
       referralCodeUsed: partnerCode?.partnerCode,
     },
   });
-
 
   const result = {
     usersLinkedCount,
@@ -73,10 +74,10 @@ const viewProfileIntoDb = async (profileId: string) => {
       id: profileId,
     },
     select: {
-      id: true
+      id: true,
     },
   });
-  
+
   const partnerCode = await prisma.partnerCode.findUnique({
     where: {
       userId: userData?.id,
@@ -96,6 +97,16 @@ const viewProfileIntoDb = async (profileId: string) => {
       email: true,
       userImage: true,
       createdAt: true,
+      userId: true,
+      phoneNumber: true,
+      address: true,
+      contactLimit: true,
+      ContactList: true,
+      _count: {
+        select: {
+          ContactList: true,
+        },
+      },
     },
   });
 
@@ -107,12 +118,12 @@ const viewProfileIntoDb = async (profileId: string) => {
   const paymentHistory = await prisma.payment.findFirst({
     where: {
       userId: user.id,
-      status: "COMPLETED"
+      status: "COMPLETED",
     },
     include: {
       subscriptionPlan: true,
-      pricingOption: true
-    }
+      pricingOption: true,
+    },
   });
 
   return { user, paymentHistory };
@@ -125,10 +136,10 @@ const activePlansIntoDb = async (id: string) => {
       id: id,
     },
     select: {
-      id: true
+      id: true,
     },
   });
-  
+
   const partnerCode = await prisma.partnerCode.findUnique({
     where: {
       userId: userData?.id,
@@ -165,7 +176,8 @@ const activePlansIntoDb = async (id: string) => {
   return { users, usersCount };
 };
 
-const getPartnerProfileIntoDb = async (id: string) => {
+// year signup users
+const yearSignUpIntoDb = async (id: string) => {
   const userData = await prisma.user.findUnique({
     where: {
       id,
@@ -181,6 +193,72 @@ const getPartnerProfileIntoDb = async (id: string) => {
       fullName: true,
       role: true,
       loginType: true,
+    },
+  });
+
+  // Partner code
+  const partnerCode = await prisma.partnerCode.findUnique({
+    where: {
+      userId: userData?.id,
+    },
+    select: {
+      partnerCode: true,
+    },
+  });
+
+  // user links
+  const usersLinked = await prisma.user.findMany({
+    where: {
+      referralCodeUsed: partnerCode?.partnerCode,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      userImage: true,
+      createdAt: true,
+    },
+  });
+
+  // year signup
+  const currentYear = new Date().getFullYear();
+  const yearSignUp = usersLinked.filter((user) => {
+    const createdAtYear = new Date(user.createdAt).getFullYear();
+    return createdAtYear === currentYear;
+  });
+  const createdAtYearCount = usersLinked.filter((user) => {
+    const createdAtYear = new Date(user.createdAt).getFullYear();
+    return createdAtYear === currentYear;
+  }).length;
+
+  const result = {
+    partnerCode,
+    createdAtYearCount,
+    yearSignUp,
+  };
+
+  return result;
+};
+
+const getPartnerProfileIntoDb = async (id: string) => {
+  const userData = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      email: true,
+      phoneNumber: true,
+      businessName: true,
+      accountNumber: true,
+      accountHolderName: true,
+      bankName: true,
+      shortCode: true,
+      address: true,
+      fullName: true,
+      role: true,
+      loginType: true,
+      partnerImage: true,
     },
   });
 
@@ -231,14 +309,21 @@ const getPartnerProfileIntoDb = async (id: string) => {
   }, 0);
 
   // find active plans
-  const findUserActivePlanCount = await prisma.payment.count({
+  const findUserActivePlanCount = await prisma.payment.findMany({
     where: {
       user: {
         referralCodeUsed: partnerCode?.partnerCode,
       },
       status: "COMPLETED",
     },
+    select: {
+      subscriptionPlanId: true,
+    },
   });
+  // To get unique subscriptionPlanIds:
+  const uniqueSubscriptionPlanIds = [
+    ...new Set(findUserActivePlanCount.map((p) => p.subscriptionPlanId)),
+  ];
 
   // year signup
   const currentYear = new Date().getFullYear();
@@ -269,7 +354,7 @@ const getPartnerProfileIntoDb = async (id: string) => {
     usersLinked,
     usersLinkedCount,
     myWallet: calculateCommission,
-    activePlanCount: findUserActivePlanCount,
+    activePlanCount: uniqueSubscriptionPlanIds?.length || 0,
     yearSignUp,
     daysToPayout,
   };
@@ -337,12 +422,11 @@ const myWalletIntoDb = async (id: string) => {
     return total + (payment.commissionAmount || 0);
   }, 0);
 
-
   const result = {
     partnerCode,
     myWallet: calculateCommission,
     currentYearBalance,
-    previousYearBalance
+    previousYearBalance,
   };
 
   return result;
@@ -392,4 +476,5 @@ export const partnerService = {
   viewProfileIntoDb,
   myWalletIntoDb,
   activePlansIntoDb,
+  yearSignUpIntoDb,
 };

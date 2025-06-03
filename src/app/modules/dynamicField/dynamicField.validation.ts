@@ -11,7 +11,5 @@ export const dynamicFieldSchema = z.object({
 });
 
 export const querySchema = z.object({
-  category: z
-    .enum(["POST_TAGS", "CORE_TAGS", "KEY_INFORMATION_SECTIONS"])
-    .optional(),
+  category: z.nativeEnum(DynamicFieldCategory).optional(),
 });

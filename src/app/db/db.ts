@@ -21,6 +21,7 @@ export const initiateSuperAdmin = async () => {
     address: "Remote",
     userId: "100001",
     referralCode: "000000",
+    lastLogin: new Date(),
   };
 
   const isExistUser = await prisma.user.findUnique({
