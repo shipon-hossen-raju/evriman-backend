@@ -11,7 +11,18 @@ const createIntoDb = async (payload: DeathVerification) => {
 
 // This function retrieves a list of death verifications from the database.
 const getListFromDb = async () => {
-  const result = await prisma.deathVerification.findMany();
+  const result = await prisma.deathVerification.findMany({
+    where: {
+      OR: [
+        {
+          status: "CHECKING",
+        },
+        {
+          status: "PENDING",
+        }
+      ],
+    },
+  });
   return result;
 };
 
@@ -36,7 +47,7 @@ const getByIdFromDb = async (id: string) => {
     },
   });
 
-  return { ...result, user: {...user} };
+  return { ...result, user: { ...user } };
 };
 
 const updateIntoDb = async (id: string, data: any) => {
@@ -52,7 +63,10 @@ const updateIntoDb = async (id: string, data: any) => {
 };
 
 // status update into db
-const statusUpdateIntoDb = async (id: string, payload: {status: VerificationStatus}) => {
+const statusUpdateIntoDb = async (
+  id: string,
+  payload: { status: VerificationStatus }
+) => {
   // find the death verification by ID
   const deathCertificate = await prisma.deathVerification.findUnique({
     where: { id },
@@ -97,8 +111,6 @@ const statusUpdateIntoDb = async (id: string, payload: {status: VerificationStat
     throw new ApiError(httpStatus.BAD_REQUEST, "Invalid status value");
   }
 
- 
-
   // update the death verification status
   const transaction = await prisma.$transaction(async (prisma) => {
     // update the user's isDeceased status
@@ -117,7 +129,6 @@ const statusUpdateIntoDb = async (id: string, payload: {status: VerificationStat
       data: { status: statusCode },
     });
     return result;
-
   });
 
   return transaction;

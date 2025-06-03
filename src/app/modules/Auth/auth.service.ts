@@ -1,4 +1,10 @@
-import { LoginType, UserStatus } from "@prisma/client";
+import {
+  DynamicFieldCategory,
+  DynamicFieldStatus,
+  DynamicFieldType,
+  LoginType,
+  UserStatus,
+} from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
@@ -75,8 +81,25 @@ const getMyProfile = async (id: string) => {
       memoryClaimRequests: true,
       offerCodes: true,
       payments: true,
+      UserDynamicFieldValue: true,
+      referredUsers: true
     },
   });
+
+  // find memories
+  const memoriesData = await prisma.userMemory.findMany({
+    where: {
+      userId: id
+    }
+  })
+
+  // Get referredUsers count and data
+  let referredUsersCount = 0;
+  let referredUsersData: any[] = [];
+  if (userProfile && userProfile.referredUsers) {
+    referredUsersCount = userProfile.referredUsers.length;
+    referredUsersData = userProfile.referredUsers;
+  }
 
   // find partner code
   const partnerCode = await prisma.partnerCode.findUnique({
@@ -85,12 +108,56 @@ const getMyProfile = async (id: string) => {
     },
   });
 
+  // group by Category for UserDynamicFieldValue
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+    Record<
+      string,
+      {
+        id: string;
+        label: string;
+        fieldName: string;
+        type: DynamicFieldType;
+        options: string[];
+        status: DynamicFieldStatus;
+        category: DynamicFieldCategory;
+        createdAt: Date;
+        updatedAt: Date;
+      }[]
+    >
+  >((acc, category) => {
+    const fields = (userProfile?.UserDynamicFieldValue ?? [])
+      .filter((field) => field.category === category)
+      .map((field) => ({
+        id: field.id,
+        label: field.fieldName,
+        fieldName: field.fieldName,
+        type: field.fieldType,
+        options: [],
+        status: DynamicFieldStatus.PUBLISHED || DynamicFieldStatus.DRAFT,
+        category: field.category,
+        createdAt: field.createdAt,
+        updatedAt: field.updatedAt,
+      }));
+
+    acc[category] = fields;
+    return acc;
+  }, {});
+
   if (userProfile) {
-    const { password, ...profileWithoutPassword } = userProfile as any;
-    return { ...profileWithoutPassword, partnerCode };
+    const { password, UserDynamicFieldValue, ...profileWithoutPassword } =
+      userProfile as any;
+
+    const userData = {
+      ...profileWithoutPassword,
+      referredUsersCount,
+      referredUsersData,
+      partnerCode,
+    };
+
+    return { userData, memoriesData, groupedByCategory };
   }
 
-  return userProfile;
+  return { userProfile, memoriesData, groupedByCategory };
 };
 
 // change password
