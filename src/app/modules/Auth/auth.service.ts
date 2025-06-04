@@ -52,7 +52,7 @@ const loginUser = async (payload: {
   // Update lastLogin field
   await prisma.user.update({
     where: { id: userData.id },
-    data: { lastLogin: new Date() },
+    data: { lastLogin: new Date(), loginType: payload.loginType },
   });
 
   const accessToken = jwtHelpers.generateToken(
@@ -60,7 +60,7 @@ const loginUser = async (payload: {
       id: userData?.id,
       email: userData?.email,
       role: userData?.role,
-      LoginType: userData?.loginType,
+      LoginType: payload.loginType,
       name: userData?.fullName,
     },
     config.jwt.jwt_secret as Secret,
@@ -70,7 +70,7 @@ const loginUser = async (payload: {
   return {
     token: accessToken,
     role: userData?.role,
-    LoginType: userData?.loginType,
+    LoginType: payload.loginType,
     isCompleteProfile: userData.isCompleteProfile,
     isCompletePartnerProfile: userData.isCompletePartnerProfile,
     lastLogin: new Date(),
