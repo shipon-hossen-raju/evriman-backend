@@ -153,7 +153,9 @@ type GetUserMemoriesFilter = {
   searchQuery?: string;
 };
 // get all user memories with filters
-const getAllUserMemories = async (filters: GetUserMemoriesFilter = {}) => {
+const getAllUserMemories = async (
+  id: string, filters: GetUserMemoriesFilter = {}
+) => {
   const {
     userId,
     tagId,
@@ -163,6 +165,20 @@ const getAllUserMemories = async (filters: GetUserMemoriesFilter = {}) => {
     endDate,
     searchQuery,
   } = filters;
+
+  // find user id
+  const userData = await prisma.user.findUnique({
+    where: {
+      id: id,
+    },
+    select: {
+      id: true,
+      userImage: true,
+      userId: true,
+      fullName: true,
+      ContactList: true,
+    }
+  });
 
   const memories = await prisma.userMemory.findMany({
     where: {
@@ -195,6 +211,14 @@ const getAllUserMemories = async (filters: GetUserMemoriesFilter = {}) => {
     },
     include: {
       tag: true,
+      user: {
+        select: {
+          userImage: true,
+          fullName: true,
+          userId: true,
+          id: true
+        }
+      },
       contacts: {
         include: {
           contact: true,
@@ -211,7 +235,7 @@ const getAllUserMemories = async (filters: GetUserMemoriesFilter = {}) => {
     publish: dateOutput(memory.publish),
   }));
 
-  return formatData;
+  return { userData, memories: formatData };
 };
 
 // get user memory by userId
