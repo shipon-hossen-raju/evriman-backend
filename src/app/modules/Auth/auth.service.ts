@@ -70,6 +70,7 @@ const loginUser = async (payload: {
   return {
     token: accessToken,
     role: userData?.role,
+    LoginType: userData?.loginType,
     isCompleteProfile: userData.isCompleteProfile,
     isCompletePartnerProfile: userData.isCompletePartnerProfile,
     lastLogin: new Date(),

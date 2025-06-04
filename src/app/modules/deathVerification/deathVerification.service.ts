@@ -46,6 +46,9 @@ const getByIdFromDb = async (id: string) => {
       fullName: true,
       phoneNumber: true,
       dob: true,
+      address: true,
+      userImage: true,
+      partnerImage: true,
       lastLogin: true,
       ContactList: true,
       _count: {

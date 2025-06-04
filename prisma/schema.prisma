@@ -48,6 +48,7 @@ model User {
   userId        String     @unique
   fullName      String
   email         String     @unique
+  fcmToken      String?
   otp           Int?
   expirationOtp DateTime?
   password      String
@@ -132,6 +133,8 @@ model DeathVerification {
 
   user   User?   @relation(fields: [userId], references: [userId])
   userId String?
+
+  isAdminVisit Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -449,7 +452,7 @@ model UserDynamicFieldValue {
   userId    String               @db.ObjectId
   fieldName String
   value     String?
-  text     String?
+  text      String?
   fieldType DynamicFieldType
   category  DynamicFieldCategory
   createdAt DateTime             @default(now())

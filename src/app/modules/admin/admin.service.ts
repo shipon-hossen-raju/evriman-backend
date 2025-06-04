@@ -54,6 +54,8 @@ const getAdminHome = async () => {
   // claim memories
   const claimMemories = await prisma.memoryClaimRequest.count({});
 
+  //
+
   return {
     salesPerformance: salesUserCount,
     manageUsers: usersCount,
@@ -110,8 +112,8 @@ const totalSalesIntoDb = async ({
       subscriptionPlan: {
         select: {
           id: true,
-          name: true
-        }
+          name: true,
+        },
       },
       pricingOption: {
         select: {
@@ -162,7 +164,7 @@ const totalSalesIntoDb = async ({
     const paymentWithPlan = payments.find(
       (p) => p.pricingOption?.id === pricingOptionId
     );
-    
+
     return {
       userCount: userIds.size,
       pricingOption,
@@ -173,7 +175,7 @@ const totalSalesIntoDb = async ({
   return { usersAndCount, total };
 };
 
-const partnerManageIntoDb = async (topSales: Boolean) => {
+const partnerManageIntoDb = async (topSales: string, limit: number) => {
   // manage partners
   const allPartnersCount = await prisma.user.count({
     where: {
@@ -198,6 +200,7 @@ const partnerManageIntoDb = async (topSales: Boolean) => {
     usersLinkedCount?: number;
     currentBalance?: number;
   };
+
   const allPartners: PartnerWithCode[] = await prisma.user.findMany({
     where: {
       role: "PARTNER",
@@ -216,6 +219,7 @@ const partnerManageIntoDb = async (topSales: Boolean) => {
       shortCode: true,
       accountNumber: true,
     },
+    // take: limit,
   });
 
   if (!allPartners) throw new Error("Partners not found");
@@ -266,10 +270,11 @@ const partnerManageIntoDb = async (topSales: Boolean) => {
   }
 
   let partnerData = [];
-  if (topSales) {
+  if (topSales === "true") {
     partnerData = allPartners
       .sort((a, b) => (b.currentBalance ?? 0) - (a.currentBalance ?? 0))
-      .filter((p) => p.currentBalance !== 0);
+      .filter((p) => p.currentBalance !== 0)
+      .slice(0, limit);
   } else {
     partnerData = allPartners.sort(
       (a, b) => (a.currentBalance ?? 0) - (b.currentBalance ?? 0)
@@ -277,6 +282,7 @@ const partnerManageIntoDb = async (topSales: Boolean) => {
   }
 
   return {
+    limit: limit,
     allPartnersCount,
     allPartners: partnerData,
   };
@@ -389,9 +395,119 @@ const partnerSingleProfileIntoDb = async ({
   };
 };
 
+// admin notification
+const getAdminNotification = async () => {
+  // Find pending death verification requests
+  const pendingDeathVerifications = await prisma.deathVerification.findMany({
+    where: {
+      status: "PENDING",
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // Find partner requests (users who requested to become partners)
+  const partnerRequests = await prisma.user.findMany({
+    where: {
+      isPartner: true,
+      role: "USER",
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // Find pending memory claim requests
+  const pendingClaimMemories = await prisma.memoryClaimRequest.findMany({
+    where: {
+      status: "PENDING",
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // find subscription payment plan by user
+  const paymentSubscription = await prisma.payment.findMany({
+    where: {
+      status: "COMPLETED",
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          userImage: true,
+        },
+      },
+      subscriptionPlan: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      pricingOption: {
+        select: {
+          durationInMonths: true,
+          amount: true,
+          label: true,
+          eligibility: true,
+          id: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // Optionally, count unread or new notifications
+  const notificationCounts = {
+    pendingDeathVerifications: pendingDeathVerifications.length,
+    partnerRequests: partnerRequests.length,
+    pendingClaimMemories: pendingClaimMemories.length,
+    paymentSubscription: paymentSubscription.length,
+  };
+
+  return {
+    notificationCounts,
+    pendingDeathVerifications,
+    partnerRequests,
+    pendingClaimMemories,
+    paymentSubscription,
+  };
+};
+
 export const adminService = {
   getAdminHome,
   totalSalesIntoDb,
   partnerManageIntoDb,
   partnerSingleProfileIntoDb,
+  getAdminNotification,
 };

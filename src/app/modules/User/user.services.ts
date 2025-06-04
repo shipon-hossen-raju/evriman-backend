@@ -216,6 +216,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       token,
       otp,
       role: result?.role,
+      loginType: result?.loginType,
       isCompleteProfile: result.isCompleteProfile,
       isCompletePartnerProfile: result.isCompletePartnerProfile,
     };
@@ -714,17 +715,46 @@ const getNotificationIntoDb = async (id: string) => {
   // find user
   const findUser = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, email: true, userId: true, ContactList: true },
+    select: { id: true, email: true, userId: true, isPaid: true },
+  });
+
+  // spacial offer You
+  const spacialOfferCodeYou = await prisma.offerCode.findMany({
+    where: {
+      OR: [
+        {
+          targetUsers: {
+            some: { userId: findUser?.id },
+          },
+        },
+      ],
+    },
+  });
+
+  // spacial offer
+  const spacialOfferCode = await prisma.offerCode.findMany({
+    where: {
+      OR: [
+        {
+          targetUsers: {
+            some: { userId: findUser?.id },
+          },
+        },
+        {
+          userType: "ALL",
+        },
+        {
+          userType: findUser?.isPaid === true ? "PAID" : "ALL",
+        },
+      ],
+    },
   });
 
   // find death verification
-  const findDeathVerification = await prisma.deathVerification.findMany({
+  const youAreDead = await prisma.deathVerification.findMany({
     where: {
       deceasedProfileId: findUser?.userId,
       OR: [
-        {
-          status: "PENDING",
-        },
         {
           status: "CHECKING",
         },
@@ -737,21 +767,70 @@ const getNotificationIntoDb = async (id: string) => {
     where: {
       email: findUser?.email,
     },
-    select: {
-      user: true,
-    },
   });
 
-  const findContactVerification = await prisma.contactList.findFirst({
+  const contactVerification = await prisma.contactList.findMany({
     where: {
       email: findUser?.email,
       isDeathNotify: true,
     },
   });
 
+  const contactListFind = await prisma.contactList.findMany({
+    where: {
+      OR: [
+        {
+          email: findUser?.email,
+        },
+        {
+          guardianEmail: findUser?.email,
+        },
+      ],
+    },
+  });
+
+  // Find memories where the user's id is included in the contactIds array
+  const yourMemories = await prisma.userMemory.findMany({
+    where: {
+      OR: [
+        {
+          contacts: {
+            some: {
+              contactId: {
+                in: contactListFind?.map((contact) => contact.id) || [],
+              },
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      contacts: {
+        include: {
+          contact: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  userImage: true,
+                  userId: true,
+                  isDeceased: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
   return {
-    findContactVerification,
-    deathVerification: findDeathVerification,
+    yourMemories: yourMemories,
+    spacialOfferCode,
+    spacialOfferCodeYou,
+    contactVerification,
+    youAreDead,
     othersContactList,
   };
 };
@@ -760,7 +839,6 @@ const notificationDeathStatusIntoDb = async (
   id: string,
   payload: { status: boolean }
 ) => {
-
   console.log("payload ", payload);
   const findUser = await prisma.user.findUnique({
     where: {
@@ -776,7 +854,7 @@ const notificationDeathStatusIntoDb = async (
   });
 
   if (!findContactVerification) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Data Not Fount!")
+    throw new ApiError(httpStatus.NOT_FOUND, "Data Not Fount!");
   }
 
   const updateContact = await prisma.contactList.update({
@@ -784,8 +862,8 @@ const notificationDeathStatusIntoDb = async (
       id: findContactVerification.id,
     },
     data: {
-      isDeath: payload.status === true ? true : false
-    }
+      isDeath: payload.status === true ? true : false,
+    },
   });
 
   return updateContact;
