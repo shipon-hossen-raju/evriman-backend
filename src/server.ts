@@ -1,13 +1,26 @@
 import { Server } from "http";
-import config from "./config";
-
-import prisma from "./shared/prisma";
+import cron from "node-cron";
 import app from "./app";
+import config from "./config";
+import {
+  checkSubscription,
+  updateOfferCodesEveryDay,
+  updateUserAges,
+} from "./shared/everyDayCheck";
 
 let server: Server;
 
 async function startServer() {
   server = app.listen(config.port, () => {
+    // Runs every day
+    cron.schedule("0 0 * * *", () => {
+      console.log("Running checkSubscription, updateUserAges every day...");
+
+      checkSubscription();
+      updateUserAges();
+      updateOfferCodesEveryDay();
+    });
+
     console.log("Server is listiening on port ", config.port);
   });
 }
@@ -18,7 +31,7 @@ async function main() {
     if (server) {
       server.close(() => {
         console.info("Server closed!");
-        restartServer(); 
+        restartServer();
       });
     } else {
       process.exit(1);
