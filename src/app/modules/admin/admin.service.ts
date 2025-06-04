@@ -348,7 +348,6 @@ const partnerSingleProfileIntoDb = async ({
     ...new Set(userActivePlanCount.map((p) => p.subscriptionPlanId)),
   ];
 
-  // user wallet
   // Current year commission
   const userWallet = await prisma.payment.findMany({
     where: {
@@ -391,7 +390,10 @@ const partnerSingleProfileIntoDb = async ({
     usersLinkedCount,
     userActivePlanCount: uniqueSubscriptionPlanIds.length,
     currentBalance: calculateCommission,
-    userData,
+    userData: {
+      ...userData,
+      partnerCode: partnerCode?.partnerCode,
+    },
   };
 };
 
