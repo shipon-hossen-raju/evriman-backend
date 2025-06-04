@@ -40,16 +40,32 @@ const totalSales = catchAsync(async (req, res) => {
 
 // Partner manage
 const partnerManage = catchAsync(async (req, res) => {
-  const result = await adminService.partnerManageIntoDb(req.body.topSales);
-  // const result = await adminService.totalSalesIntoDb({
-  //   year: (req.query.year as string) || "",
-  //   plan: (req.query.plan as string) || "",
-  // });
+  const topSales = req?.query?.topSales as string;
+  const limit = (req?.query?.limit as string) || 10;
+  
+  const result = await adminService.partnerManageIntoDb(
+    topSales,
+    Number(limit)
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Total Sales retrieved successfully",
+    data: result,
+  });
+});
+
+// Partner manage
+const adminNotification = catchAsync(async (req, res) => {
+  
+  const result = await adminService.getAdminNotification(
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Admin Notification retrieved successfully",
     data: result,
   });
 });
@@ -107,6 +123,7 @@ export const adminController = {
   totalSales,
   partnerManage,
   partnerSingleProfile,
+  adminNotification,
   // getAdminById,
   // updateAdmin,
   // deleteAdmin,

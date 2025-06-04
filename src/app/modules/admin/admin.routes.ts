@@ -27,8 +27,14 @@ router.get("/total-sales", auth(), adminController.totalSales);
 router.get(
   "/partner-manage",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  validateRequest(adminValidation.topSales),
   adminController.partnerManage
+);
+
+// Partner Manage
+router.get(
+  "/notification",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  adminController.adminNotification
 );
 
 // Partner Manage
