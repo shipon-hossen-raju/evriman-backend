@@ -201,22 +201,16 @@ const createPaymentRequest = async (
       stripePaymentIntentId: "",
       startDate,
       endDate,
-      commissionType,
-      commissionAmount,
-      commissionReceiverId,
+      ...(findUser?.referralCodeUsed && {
+        commissionType,
+        commissionAmount,
+        commissionReceiverId,
+      }),
       subscriptionPlanId: findSPI.id,
       pricingOptionId: findPricingPOI.id,
       userId: findUser?.id ?? "",
       offerCodeId: findOfferCode?.id,
     };
-
-    // const {
-    //   subscriptionPlanId,
-    //   pricingOptionId,
-    //   userId: userIdFromStore,
-    //   offerCodeId,
-    //   ...restStoreDatabase
-    // } = storeDatabase;
 
     const storedData = await prisma.payment.create({
       data: {
@@ -377,5 +371,5 @@ export const paymentService = {
 
   createStripePaymentIntent,
   createPaymentRequest,
-  paymentConfirmIntoDb
+  paymentConfirmIntoDb,
 };
