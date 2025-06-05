@@ -434,46 +434,6 @@ const getUsersFromDb = async (
 
 // view profile
 const viewProfile = async (profileId: string) => {
-  // const user = await prisma.user.findUnique({
-  //   where: { id: profileId, role: "USER" },
-  //   select: {
-  //     id: true,
-  //     userId: true,
-  //     fullName: true,
-  //     email: true,
-  //     role: true,
-  //     phoneNumber: true,
-  //     dob: true,
-  //     address: true,
-  //     referralCode: true,
-  //     userImage: true,
-  //     createdAt: true,
-  //     updatedAt: true,
-  //     isPartner: true,
-  //     isUser: true,
-  //     status: true,
-  //     age: true,
-  //     isDeceased: true,
-  //     isVerified: true,
-  //     partnerStatus: true,
-  //     ContactList: true,
-  //     memories: true,
-  //     UserDynamicFieldValue: true,
-  //     _count: {
-  //       select: {
-  //         ContactList: true,
-  //         memories: true,
-  //         UserDynamicFieldValue: true,
-  //       },
-  //     },
-  //   },
-  // });
-
-  // if (!user) {
-  //   throw new ApiError(httpStatus.NOT_FOUND, "User not found");
-  // }
-
-  // return user;
 
   const userProfile = await prisma.user.findUnique({
     where: {
