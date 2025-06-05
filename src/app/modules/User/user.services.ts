@@ -641,6 +641,7 @@ const getAllPartnerFromDb = async (
     select: {
       id: true,
       fullName: true,
+      partnerImage: true,
       email: true,
       role: true,
       isPartner: true,
@@ -657,6 +658,11 @@ const getAllPartnerFromDb = async (
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      partner: {
+        select: {
+          partnerCode: true
+        }
+      },
       _count: {
         select: { ContactList: true },
       },
