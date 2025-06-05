@@ -53,7 +53,7 @@ dynamicUserDataRoute.get(
 // delete dynamic user data
 dynamicUserDataRoute.delete(
   "/:id",
-  auth(UserRole.USER),
+  auth(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   dynamicUserDataController.deleteDynamicUserData
 );
 

@@ -544,6 +544,7 @@ const viewProfile = async (profileId: string) => {
         type: DynamicFieldType;
         options: string[];
         status: DynamicFieldStatus;
+        value: string;
         category: DynamicFieldCategory;
         createdAt: Date;
         updatedAt: Date;
@@ -556,6 +557,8 @@ const viewProfile = async (profileId: string) => {
         id: field.id,
         label: field.fieldName,
         fieldName: field.fieldName,
+        text: field.text,
+        value: field.value ?? "",
         type: field.fieldType,
         options: [],
         status: DynamicFieldStatus.PUBLISHED || DynamicFieldStatus.DRAFT,
@@ -641,6 +644,7 @@ const getAllPartnerFromDb = async (
     select: {
       id: true,
       fullName: true,
+      partnerImage: true,
       email: true,
       role: true,
       isPartner: true,
@@ -657,6 +661,11 @@ const getAllPartnerFromDb = async (
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      partner: {
+        select: {
+          partnerCode: true
+        }
+      },
       _count: {
         select: { ContactList: true },
       },

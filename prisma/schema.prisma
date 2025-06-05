@@ -16,6 +16,7 @@ datasource db {
 enum LoginType {
   USER
   PARTNER
+  ADMIN
 }
 
 enum VerificationStatus {

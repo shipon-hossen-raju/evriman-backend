@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole, LoginType } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import config from "../../config";
 import prisma from "../../shared/prisma";
@@ -22,6 +22,7 @@ export const initiateSuperAdmin = async () => {
     userId: "100001",
     referralCode: "000000",
     lastLogin: new Date(),
+    loginType: LoginType.ADMIN, // Ensure this matches your Prisma schema
   };
 
   const isExistUser = await prisma.user.findUnique({
