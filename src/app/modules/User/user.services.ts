@@ -1005,7 +1005,7 @@ const profileImageUpload = async (req: Request) => {
       ...(existingUser.role === "USER" && {
         userImage: image || existingUser.userImage,
       }),
-      ...(existingUser.role === "PARTNER" && {
+      ...(existingUser.isPartner === true && {
         partnerImage: image || existingUser.partnerImage,
       }),
       updatedAt: new Date(),

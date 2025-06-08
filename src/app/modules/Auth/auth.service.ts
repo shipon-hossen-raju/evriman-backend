@@ -209,17 +209,23 @@ const getMyProfile = async (id: string) => {
 
 // change password
 const changePassword = async (
-  userToken: string,
+  id: string,
   newPassword: string,
   oldPassword: string
 ) => {
-  const decodedToken = jwtHelpers.verifyToken(
-    userToken,
-    config.jwt.jwt_secret!
-  );
+  // const decodedToken = jwtHelpers.verifyToken(
+  //   userToken,
+  //   config.jwt.jwt_secret!
+  // );
 
   const user = await prisma.user.findUnique({
-    where: { id: decodedToken?.id },
+    where: { id },
+    select: {
+      id: true,
+      status: true, 
+      password: true, 
+
+    }
   });
 
   if (!user) {
@@ -241,7 +247,7 @@ const changePassword = async (
 
   const result = await prisma.user.update({
     where: {
-      id: decodedToken.id,
+      id: id,
     },
     data: {
       password: hashedPassword,

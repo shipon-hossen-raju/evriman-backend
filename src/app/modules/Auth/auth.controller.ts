@@ -45,11 +45,11 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
 
 // change password
 const changePassword = catchAsync(async (req: Request, res: Response) => {
-  const userToken = req.headers.authorization;
+  const userId = req.user.id;
   const { oldPassword, newPassword } = req.body;
 
   const result = await authServices.changePassword(
-    userToken as string,
+    userId,
     newPassword,
     oldPassword
   );
