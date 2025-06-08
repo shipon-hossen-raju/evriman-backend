@@ -1,4 +1,9 @@
-import { LoginType, PartnerType, UserRole, VerificationStatus } from "@prisma/client";
+import {
+  LoginType,
+  PartnerType,
+  UserRole,
+  VerificationStatus,
+} from "@prisma/client";
 import { z } from "zod";
 
 // Helper schemas
@@ -12,8 +17,8 @@ const passwordSchema = z
 
 const phoneSchema = z
   .string()
-  .min(10, "Phone number must be at least 10 digits")
-  .max(15, "Phone number too long");
+  // .min(3, "Phone number must be at least 3 digits")
+  .max(20, "Phone number too long");
 
 const dateSchema = z.preprocess((arg) => {
   if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
@@ -65,17 +70,16 @@ const partnerCompleteProfileSchema = z.object({
   bankName: z.string().optional(),
   accountHolderName: z.string().optional(),
   accountNumber: z.string().optional(),
-  shortCode: z.string().optional()
+  shortCode: z.string().optional(),
 });
 
 const partnerStatusSchema = z.object({
-  partnerStatus: z.nativeEnum(VerificationStatus)
+  partnerStatus: z.nativeEnum(VerificationStatus),
 });
 
 const notificationDeathStatus = z.object({
   status: z.boolean(),
 });
-
 
 export const userValidation = {
   CreateUserValidationSchema,
