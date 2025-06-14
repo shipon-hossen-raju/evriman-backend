@@ -28,11 +28,9 @@ userMemoryRoute.patch("/:id",
 )
 
 // get all User Memory data find & search query
-userMemoryRoute.get(
-  "/",
-  auth(),
-  userMemoryController.getAllUserMemoryData
-);
+userMemoryRoute.get("/", auth(), userMemoryController.getUserMemoriesAll);
+
+userMemoryRoute.get("/all", auth(), userMemoryController.getAllUserMemoryData);
 
 // get User Memory data by id
 userMemoryRoute.get(
