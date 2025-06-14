@@ -37,8 +37,6 @@ export const parseBodyFileUploader = catchAsync(
       fileUrls.push(uploaded.Location);
     }
 
-    console.log("fileUrls ", fileUrls);
-
     const userData = {
       ...bodyData,
       userId,
@@ -46,8 +44,6 @@ export const parseBodyFileUploader = catchAsync(
     };
 
     req.body = userData;
-
-    console.log("req.body ", req.body);
 
     next();
   }

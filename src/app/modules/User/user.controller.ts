@@ -64,7 +64,6 @@ const getPartner = catchAsync(async (req, res) => {
 
 // get all user form db
 const getNotification = catchAsync(async (req: Request, res: Response) => {
-  console.log(req.user.id)
   const result = await userService.getNotificationIntoDb(req.user.id);
 
   sendResponse(res, {

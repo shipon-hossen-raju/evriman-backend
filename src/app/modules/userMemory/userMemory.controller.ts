@@ -1,4 +1,5 @@
 import catchAsync from "../../../shared/catchAsync";
+import pick from "../../../shared/pick";
 import sendResponse from "../../../shared/sendResponse";
 import userMemoryService from "./userMemory.service";
 
@@ -31,13 +32,33 @@ const updateUserMemory = catchAsync(async (req, res) => {
 });
 
 // get all User Memory data find & search query
+const getUserMemoriesAll = catchAsync(async (req, res) => {
+  const filters = req.query;
+  const userId = req.user.id;
+
+  const userMemoryData = await userMemoryService.getUserMemoriesAll(
+    userId,
+    filters
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User Memory Data retrieved successfully",
+    data: userMemoryData,
+  });
+});
+
+// get all User Memory data find & search query
 const getAllUserMemoryData = catchAsync(async (req, res) => {
   const filters = req.query;
-  // console.log("filters ", filters);
-  const userId = req.user.id
+  const userId = req.user.id;
+  const options = pick(req.query, ["limit", "page", "sortBy", "sortOrder"]);
 
   const userMemoryData = await userMemoryService.getAllUserMemories(
-    userId, filters
+    userId,
+    filters,
+    options
   );
 
   sendResponse(res, {
@@ -78,6 +99,7 @@ const userMemoryController = {
   createUserMemoryData,
   updateUserMemory,
   getAllUserMemoryData,
+  getUserMemoriesAll,
   getUserMemoryById,
   deleteUserMemory,
 };

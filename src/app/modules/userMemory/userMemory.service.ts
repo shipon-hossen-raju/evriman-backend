@@ -1,7 +1,9 @@
-import { UserMemory } from "@prisma/client";
+import { Prisma, UserMemory } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 import { dateInput, dateOutput } from "../../../utils/date";
+import { IPaginationOptions } from "../../../interfaces/paginations";
+import { paginationHelper } from "../../../helpars/paginationHelper";
 
 // create user memory
 const createUserMemory = async (payload: UserMemory) => {
@@ -153,7 +155,7 @@ type GetUserMemoriesFilter = {
   searchQuery?: string;
 };
 // get all user memories with filters
-const getAllUserMemories = async (
+const getUserMemoriesAll = async (
   id: string, filters: GetUserMemoriesFilter = {}
 ) => {
   const {
@@ -238,6 +240,123 @@ const getAllUserMemories = async (
   return { userData, memories: formatData };
 };
 
+const getAllUserMemories = async (
+  id: string,
+  filters: GetUserMemoriesFilter = {},
+  options: IPaginationOptions
+) => {
+  const { page, limit, skip } = paginationHelper.calculatePagination(options);
+  const {
+    userId,
+    tagId,
+    contactId,
+    hasMedia,
+    startDate,
+    endDate,
+    searchQuery,
+  } = filters;
+
+  // find user data
+  const userData = await prisma.user.findUnique({
+    where: {
+      id: id,
+    },
+    select: {
+      id: true,
+      userImage: true,
+      userId: true,
+      fullName: true,
+      ContactList: true,
+    },
+  });
+
+  // build where condition
+  const whereConditions: Prisma.UserMemoryWhereInput = {
+    ...(userId && { userId }),
+    ...(tagId && { tagId }),
+    ...(startDate || endDate
+      ? {
+          createdAt: {
+            ...(startDate && { gte: startDate }),
+            ...(endDate && { lte: endDate }),
+          },
+        }
+      : {}),
+    ...(hasMedia !== undefined && {
+      mediaUrl: hasMedia ? { not: null } : null,
+    }),
+    ...(contactId && {
+      contacts: {
+        some: {
+          contactId: contactId,
+        },
+      },
+    }),
+    ...(searchQuery && {
+      OR: [
+        {
+          content: {
+            contains: searchQuery,
+            mode: "insensitive",
+          },
+        },
+      ],
+    }),
+  };
+
+  // get paginated data
+  const memories = await prisma.userMemory.findMany({
+    where: whereConditions,
+    include: {
+      tag: true,
+      user: {
+        select: {
+          userImage: true,
+          fullName: true,
+          userId: true,
+          id: true,
+        },
+      },
+      contacts: {
+        include: {
+          contact: true,
+        },
+      },
+    },
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? {
+            [options.sortBy]: options.sortOrder,
+          }
+        : {
+            createdAt: "desc",
+          },
+    skip,
+    take: limit,
+  });
+
+  // count total for pagination
+  const total = await prisma.userMemory.count({
+    where: whereConditions,
+  });
+
+  // format memory data
+  const formatData = memories.map((memory) => ({
+    ...memory,
+    publish: dateOutput(memory.publish),
+  }));
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    userData,
+    memories: formatData,
+  };
+};
+
 // get user memory by userId
 const getUserMemoryById = async (id: string) => {
   const userMemory = await prisma.userMemory.findUnique({
@@ -291,6 +410,7 @@ const userMemoryService = {
   createUserMemory,
   updateUserMemory,
   getAllUserMemories,
+  getUserMemoriesAll,
   getUserMemoryById,
   deleteUserMemory,
 };

@@ -4,7 +4,6 @@ import offerCodeService from "./offerCode.service";
 
 // create offer code
 const createOfferCode = catchAsync(async (req, res) => {
-  console.log("req.body ", req.body);
   const offerCode = await offerCodeService.createOfferCode(req.body);
 
   sendResponse(res, {

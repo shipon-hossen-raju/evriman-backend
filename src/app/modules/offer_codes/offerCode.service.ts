@@ -13,7 +13,7 @@ type CreateOfferCodeInput = Omit<
 };
 
 const createOfferCode = async (payload: CreateOfferCodeInput) => {
-  console.log("payload ", payload);
+
   return await prisma.$transaction(async (tx) => {
     const findOfferCode = await tx.offerCode.findFirst({
       where: {
@@ -24,8 +24,6 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
     if (findOfferCode) {
       throw new ApiError(400, "Offer code already exists");
     }
-
-    console.log("payload ", payload);
 
     // find & check user
     if (payload.targetUsers?.length) {
