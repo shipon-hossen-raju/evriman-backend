@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const SongItemSchema = z.object({
+  title: z.string(),
+  author: z.string(),
+  links: z.string().url(),
+});
+
+const SongListSchema = z.array(SongItemSchema);
+
 // Create Memory Schema
 export const createUserMemorySchema = z.object({
   content: z.string().min(1, "Content is required"),
@@ -11,7 +19,8 @@ export const createUserMemorySchema = z.object({
     .array(z.string().min(1, "Contact id required"))
     .optional()
     .default([]),
-  publish: z.string().optional()
+  publish: z.string().optional(),
+  songList: SongListSchema.optional(),
 });
 
 // Update Memory Schema
