@@ -808,7 +808,6 @@ const notificationDeathStatusIntoDb = async (
   id: string,
   payload: { status: boolean }
 ) => {
-  console.log("payload ", payload);
   const findUser = await prisma.user.findUnique({
     where: {
       id,

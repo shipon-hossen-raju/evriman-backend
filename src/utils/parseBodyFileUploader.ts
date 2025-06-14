@@ -11,8 +11,6 @@ export const parseBodyFileUploader = catchAsync(
 
     const bodyData = JSON.parse(req.body.data);
 
-    console.log("bodyData ", bodyData);
-
     const file = req.file;
     let imageUrl: string = "";
     if (!file && bodyData.loginType === "User") {

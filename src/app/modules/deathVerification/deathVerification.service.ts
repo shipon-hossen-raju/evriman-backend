@@ -145,7 +145,6 @@ const statusUpdateIntoDb = async (
       throw new ApiError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    console.log("statusCode ", statusCode);
     // contact list update
     if (statusCode === "CHECKING") {
       // Update all contactList entries for this user to set isDeathNotify to true

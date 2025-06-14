@@ -10,7 +10,6 @@ export const checkSubscription = async () => {
     },
   });
 
-  // console.log("Expired subscriptions:", subscriptions);
   if (subscriptions.length > 0) {
     for (const subscription of subscriptions) {
       await prisma.payment.update({

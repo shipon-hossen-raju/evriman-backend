@@ -33,7 +33,6 @@ const updateUserMemory = catchAsync(async (req, res) => {
 // get all User Memory data find & search query
 const getAllUserMemoryData = catchAsync(async (req, res) => {
   const filters = req.query;
-  // console.log("filters ", filters);
   const userId = req.user.id
 
   const userMemoryData = await userMemoryService.getAllUserMemories(

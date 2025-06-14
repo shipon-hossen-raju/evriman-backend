@@ -15,7 +15,6 @@ export const parseBody = catchAsync(
     }
     req.body = JSON.parse(req.body.data);
     req.body.file = req.file;
-    // console.log("req.body.file ", req.body.file);
 
     next();
   }
