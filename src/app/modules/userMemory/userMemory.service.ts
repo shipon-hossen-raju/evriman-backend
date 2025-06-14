@@ -50,6 +50,7 @@ const createUserMemory = async (payload: UserMemory) => {
           },
         })),
       },
+      songList: payload.songList,
     },
     include: {
       tag: true,
