@@ -228,7 +228,7 @@ const partnerCompleteProfileIntoDb = async (
   id: string,
   payload: Partial<User>
 ) => {
-  const findUser = await prisma.user.findFirst({
+  const findUser = await prisma.user.findUnique({
     where: {
       id,
     },
@@ -241,6 +241,8 @@ const partnerCompleteProfileIntoDb = async (
   if (!findUser) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
+
+  console.log("payload ", payload);
 
   const updatedUser = await prisma.user.update({
     where: { id },
