@@ -208,7 +208,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     await emailSender(
       result.email,
       OtpHtml(otp),
-      `Welcome to our service! Your OTP is: ${result.otp}`
+      `Welcome to our service! Your OTP is: ${otp}`
     );
 
     return {
