@@ -1,3 +1,5 @@
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 import { PricingOptionInput, SubscriptionPayload } from "./subscription.type";
 
@@ -30,7 +32,7 @@ const createSubscription = async (payload: SubscriptionPayload) => {
 const findAllSubscriptionsPublish = async () => {
   const result = await prisma.subscriptionPlan.findMany({
     where: {
-      isActive: true
+      isActive: true,
     },
     include: {
       pricingOptions: true,
@@ -38,7 +40,7 @@ const findAllSubscriptionsPublish = async () => {
   });
 
   if (!result.length) {
-    throw new Error("Subscription not found");
+    throw new ApiError(404, "Subscription not found");
   }
 
   return result;
@@ -46,16 +48,14 @@ const findAllSubscriptionsPublish = async () => {
 
 // find all subscriptions
 const findAllSubscriptions = async () => {
-  const result = await prisma.subscriptionPlan.findMany(
-    {
-      include: {
-        pricingOptions: true,
-      },
-    }
-  );
+  const result = await prisma.subscriptionPlan.findMany({
+    include: {
+      pricingOptions: true,
+    },
+  });
 
   if (!result.length) {
-    throw new Error("Subscription not found");
+    throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
   }
 
   return result;
