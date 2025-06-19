@@ -146,6 +146,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       age: true,
       isCompleteProfile: true,
       isCompletePartnerProfile: true,
+      isPaid: true,
     };
     if (justEmail?.id && justEmail?.email) {
       result = await tx.user.update({
@@ -219,6 +220,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       loginType: result?.loginType,
       isCompleteProfile: result.isCompleteProfile,
       isCompletePartnerProfile: result.isCompletePartnerProfile,
+      isPaid: result.isPaid,
     };
   });
 };
@@ -228,7 +230,7 @@ const partnerCompleteProfileIntoDb = async (
   id: string,
   payload: Partial<User>
 ) => {
-  const findUser = await prisma.user.findFirst({
+  const findUser = await prisma.user.findUnique({
     where: {
       id,
     },
@@ -241,6 +243,8 @@ const partnerCompleteProfileIntoDb = async (
   if (!findUser) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
+
+  console.log("payload ", payload);
 
   const updatedUser = await prisma.user.update({
     where: { id },

@@ -20,7 +20,7 @@ router.post(
 
 // partner complete profile
 router.put(
-  "/profile-complete/",
+  "/profile-complete",
   auth(),
   validateRequest(userValidation.partnerCompleteProfileSchema),
   userController.partnerCompleteProfile

@@ -26,21 +26,22 @@ export const parseBodyFileUploader = catchAsync(
       files = Object.values(req.files).flat();
     }
 
-    if (!files || files.length === 0) {
-      throw new ApiError(400, "File is required");
-    }
+    // if (!files || files.length === 0) {
+    //   throw new ApiError(400, "File is required");
+    // }
 
     const fileUrls = [];
-    for (const file of files) {
-      // process each file here
-      const uploaded = await fileUploader.uploadToDigitalOcean(file);
-      fileUrls.push(uploaded.Location);
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const uploaded = await fileUploader.uploadToDigitalOcean(file);
+        fileUrls.push(uploaded.Location);
+      }
     }
 
     const userData = {
       ...bodyData,
       userId,
-      files: [...fileUrls],
+      files: fileUrls.length > 0 ? [...fileUrls] : [],
     };
 
     req.body = userData;
