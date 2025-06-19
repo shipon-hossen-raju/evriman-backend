@@ -11,7 +11,7 @@ const SongListSchema = z.array(SongItemSchema);
 // Create Memory Schema
 export const createUserMemorySchema = z.object({
   content: z.string().min(1, "Content is required"),
-  files: z.array(z.string().url("File is required")),
+  files: z.array(z.string().url("File is required")).optional().default([]),
   isPublish: z.boolean().default(false),
   tagId: z.string().min(1, "TagId is required"),
   userId: z.string().min(1, "User ID is required"),
