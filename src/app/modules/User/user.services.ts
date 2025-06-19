@@ -146,6 +146,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       age: true,
       isCompleteProfile: true,
       isCompletePartnerProfile: true,
+      isPaid: true,
     };
     if (justEmail?.id && justEmail?.email) {
       result = await tx.user.update({
@@ -219,6 +220,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       loginType: result?.loginType,
       isCompleteProfile: result.isCompleteProfile,
       isCompletePartnerProfile: result.isCompletePartnerProfile,
+      isPaid: result.isPaid,
     };
   });
 };

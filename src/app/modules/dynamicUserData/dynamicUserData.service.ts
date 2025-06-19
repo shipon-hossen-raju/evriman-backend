@@ -6,11 +6,14 @@ import prisma from "../../../shared/prisma";
 const createDynamicUserData = async (payload: UserDynamicFieldValue) => {
 
   // Check if the dynamic user data exists
-  const existingDynamicUserData = await prisma.userDynamicFieldValue.findFirst(
-    {
-      where: { userId: payload.userId, fieldType: payload.fieldType },
-    }
-  );
+  const existingDynamicUserData = await prisma.userDynamicFieldValue.findFirst({
+    where: {
+      userId: payload.userId,
+      category: payload.category,
+      fieldName: payload.fieldName,
+      fieldType: payload.fieldType,
+    },
+  });
   if (existingDynamicUserData) {
     throw new ApiError(400, "Dynamic user data already exists");
   }

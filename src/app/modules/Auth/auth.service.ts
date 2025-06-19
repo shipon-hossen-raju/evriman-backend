@@ -31,6 +31,17 @@ const loginUser = async (payload: {
       }),
       ...(payload.loginType === "USER" && { isUser: true }),
     },
+    select: {
+      id: true,
+      email: true,
+      password: true,
+      role: true,
+      fullName: true,
+      isCompleteProfile: true,
+      isCompletePartnerProfile: true,
+      isPaid: true,
+      lastLogin: true,
+    }
   });
 
   if (!userData?.email) {
@@ -74,6 +85,7 @@ const loginUser = async (payload: {
     isCompleteProfile: userData.isCompleteProfile,
     isCompletePartnerProfile: userData.isCompletePartnerProfile,
     lastLogin: new Date(),
+    isPaid: userData.isPaid,
   };
 };
 
