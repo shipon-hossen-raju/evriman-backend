@@ -48,7 +48,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       });
 
       if (!checkReferral) {
-        throw new ApiError(httpStatus.NOT_FOUND, "Not Fount Referral Code!");
+        throw new ApiError(httpStatus.NOT_FOUND, "Not Found Referral Code!");
       }
     }
 
