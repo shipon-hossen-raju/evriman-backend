@@ -40,14 +40,15 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     });
 
     // check referral
+    let partnerCodeData = null
     if (payload.referralCodeUsed) {
-      const checkReferral = await tx.user.findFirst({
+      partnerCodeData = await tx.partnerCode.findFirst({
         where: {
-          referralCode: payload?.referralCodeUsed,
+          partnerCode: payload.referralCodeUsed,
         },
       });
 
-      if (!checkReferral) {
+      if (!partnerCodeData) {
         throw new ApiError(httpStatus.NOT_FOUND, "Not Found Referral Code!");
       }
     }
@@ -169,16 +170,18 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
 
       // increase referral
       if (payload.referralCodeUsed) {
-        await prisma.user.update({
-          where: {
-            referralCode: payload.referralCodeUsed,
-          },
-          data: {
-            userPoint: {
-              increment: 1,
+        if (partnerCodeData?.userId) {
+          await tx.user.update({
+            where: {
+              id: partnerCodeData.userId,
             },
-          },
-        });
+            data: {
+              userPoint: {
+                increment: 1,
+              },
+            },
+          });
+        }
       }
 
       result = await tx.user.create({
@@ -243,8 +246,6 @@ const partnerCompleteProfileIntoDb = async (
   if (!findUser) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
-
-  console.log("payload ", payload);
 
   const updatedUser = await prisma.user.update({
     where: { id },
