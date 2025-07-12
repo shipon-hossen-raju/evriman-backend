@@ -313,6 +313,26 @@ const partnerSingleProfileIntoDb = async ({
       loginType: true,
       partnerImage: true,
       partnerType: true,
+      age: true,
+      payments: {
+        select: {
+          commissionAmount: true,
+          status: true,
+          amountOfferCode: true,
+          startDate: true,
+          endDate: true,
+          amountPay: true,
+          commissionType: true,
+          amountPricing: true,
+          amountUserPoint: true,
+          subscriptionPlan: {
+            select: {
+              name: true,
+              id: true,
+            },
+          }
+        }
+      }
     },
   });
 

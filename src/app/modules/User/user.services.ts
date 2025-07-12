@@ -640,6 +640,7 @@ const getAllPartnerFromDb = async (
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      partnerType: true,
       partner: {
         select: {
           partnerCode: true,
@@ -692,6 +693,7 @@ const getPartner = async (id: string) => {
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      partnerType: true,
     },
   });
 
