@@ -218,6 +218,7 @@ const partnerManageIntoDb = async (topSales: string, limit: number) => {
       accountHolderName: true,
       shortCode: true,
       accountNumber: true,
+      partnerType: true,
     },
     // take: limit,
   });
@@ -311,6 +312,7 @@ const partnerSingleProfileIntoDb = async ({
       role: true,
       loginType: true,
       partnerImage: true,
+      partnerType: true,
     },
   });
 

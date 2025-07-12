@@ -206,8 +206,8 @@ const createPaymentRequest = async (
         commissionAmount,
         commissionReceiverId,
       }),
-      subscriptionPlanId: findSPI.id,
-      pricingOptionId: findPricingPOI.id,
+      subscriptionPlanId: payload.subscriptionPlanId,
+      pricingOptionId: payload.pricingOptionId,
       userId: findUser?.id ?? "",
       offerCodeId: findOfferCode?.id,
     };

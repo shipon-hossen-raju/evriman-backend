@@ -1,6 +1,6 @@
 import express from "express";
 import validateRequest from "../../middlewares/validateRequest";
-import { subscriptionPlanSchema } from "./subscription.validation";
+import { subscriptionPlanSchema, subscriptionPlanUpdateSchema } from "./subscription.validation";
 import { subscriptionsController } from "./subscriptions.controller";
 import auth from "../../middlewares/auth";
 import { UserRole } from "@prisma/client";
@@ -31,7 +31,7 @@ router.get("/:id", auth(), subscriptionsController.findSingleSubscription);
 router.patch(
   "/:id",
   auth(UserRole.ADMIN),
-  // validateRequest(UpdateSubscriptionPlanSchema),
+  validateRequest(subscriptionPlanUpdateSchema),
   subscriptionsController.updateSubscription
 );
 

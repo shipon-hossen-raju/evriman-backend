@@ -86,27 +86,31 @@ const updateSubscription = async (id: string, payload: SubscriptionPayload) => {
   });
 
   if (!result) {
-    throw new Error("Subscription not found");
+    throw new ApiError(httpStatus.NOT_FOUND,"Subscription not found");
   }
 
   const updatedResult = await prisma.subscriptionPlan.update({
     where: { id },
     data: {
-      name: payload.name,
-      contactLimit: payload.contactLimit,
-      isActive: payload.isActive ?? true,
-      pricingOptions: {
-        deleteMany: {
-          subscriptionPlanId: id,
+      ...(payload.name !== undefined && { name: payload.name }),
+      ...(payload.contactLimit !== undefined && {
+        contactLimit: payload.contactLimit,
+      }),
+      ...(payload.isActive !== undefined && { isActive: payload.isActive }),
+      ...(payload.pricingOptions && {
+        pricingOptions: {
+          deleteMany: {
+            subscriptionPlanId: id,
+          },
+          create: payload.pricingOptions.map((option) => ({
+            label: option.label,
+            levelId: option.levelId,
+            amount: option.amount,
+            durationInMonths: option.durationInMonths || null,
+            eligibility: option.eligibility || null,
+          })),
         },
-        create: payload.pricingOptions.map((option) => ({
-          label: option.label,
-          levelId: option.levelId,
-          amount: option.amount,
-          durationInMonths: option.durationInMonths || null,
-          eligibility: option.eligibility || null,
-        })),
-      },
+      }),
     },
     include: {
       pricingOptions: true,
