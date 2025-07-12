@@ -19,3 +19,10 @@ export const subscriptionPlanSchema = z.object({
   isActive: z.boolean().optional().default(true),
   pricingOptions: z.array(pricingOptionSchema),
 });
+
+export const subscriptionPlanUpdateSchema = z.object({
+  name: z.string().optional(),
+  contactLimit: z.number().int().optional(),
+  isActive: z.boolean().default(true).optional(),
+  pricingOptions: z.array(pricingOptionSchema).optional(),
+});

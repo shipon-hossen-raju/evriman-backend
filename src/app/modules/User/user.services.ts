@@ -40,7 +40,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
     });
 
     // check referral
-    let partnerCodeData = null
+    let partnerCodeData = null;
     if (payload.referralCodeUsed) {
       partnerCodeData = await tx.partnerCode.findFirst({
         where: {
@@ -327,9 +327,23 @@ const getUsersFromDb = async (
     isDeceased: true,
     userId: true,
     referralCode: true,
-
     isPaid: true,
     age: true,
+    payments: {
+      select: {
+        id: true,
+        endDate: true,
+        startDate: true,
+        status: true,
+        subscriptionPlan: {
+          select: {
+            name: true,
+            contactLimit: true,
+            pricingOptions: true,
+          },
+        },
+      },
+    },
   };
   // contact list count
   if (params.contacts) {
@@ -390,6 +404,7 @@ const getUsersFromDb = async (
             ContactList: true,
           },
         },
+        
       },
       skip,
       orderBy: {
@@ -439,7 +454,6 @@ const getUsersFromDb = async (
 
 // view profile
 const viewProfile = async (profileId: string) => {
-
   const userProfile = await prisma.user.findUnique({
     where: {
       id: profileId,
@@ -628,8 +642,8 @@ const getAllPartnerFromDb = async (
       partnerStatus: true,
       partner: {
         select: {
-          partnerCode: true
-        }
+          partnerCode: true,
+        },
       },
       _count: {
         select: { ContactList: true },
@@ -789,14 +803,14 @@ const getNotificationIntoDb = async (id: string) => {
                   fullName: true,
                   userImage: true,
                   userId: true,
-                  isDeceased: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  isDeceased: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
   return {
