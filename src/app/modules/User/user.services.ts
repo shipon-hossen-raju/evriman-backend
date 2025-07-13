@@ -335,11 +335,17 @@ const getUsersFromDb = async (
         endDate: true,
         startDate: true,
         status: true,
+        amountPay: true,
         subscriptionPlan: {
           select: {
             name: true,
             contactLimit: true,
-            pricingOptions: true,
+            // pricingOptions: true,
+          },
+        },
+        pricingOption: {
+          select: {
+            label: true,
           },
         },
       },
@@ -404,7 +410,6 @@ const getUsersFromDb = async (
             ContactList: true,
           },
         },
-        
       },
       skip,
       orderBy: {
@@ -468,7 +473,13 @@ const viewProfile = async (profileId: string) => {
         select: {
           amountPay: true,
           offerCodeId: true,
-          subscriptionPlan: true,
+          subscriptionPlan: {
+            select: {
+              name: true,
+              contactLimit: true,
+              // pricingOptions: true,
+            },
+          },
           id: true,
           endDate: true,
           startDate: true,
@@ -479,7 +490,13 @@ const viewProfile = async (profileId: string) => {
           commissionReceiverId: true,
           commissionType: true,
           contactLimit: true,
+          pricingOption: {
+            select: {
+              label: true,
+            },
+          },
         },
+        
         orderBy: {
           createdAt: "desc",
         },

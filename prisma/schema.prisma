@@ -404,7 +404,7 @@ model OfferCode {
 
   applicablePlans       OfferCodeSubscriptionPlan[]
   pricingOptionsLevelId OfferCodePricingOption[]
-  optionLevelId         LevelId
+  optionLevelId         LevelId?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
