@@ -91,8 +91,32 @@ const getAllContactList = async () => {
 
 // delete contact list
 const deleteContactList = async (id: string) => {
+  // check contact exists
+  const isExist = await prisma.contactList.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+    },
+  });
+  console.log("isExist ", isExist);
+  if (!isExist) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Contact not found!");
+  }
+
+  // Delete related UserMemoryContact entries first
+  await prisma.userMemoryContact.deleteMany({
+    where: {
+      contactId: id,
+    },
+  });
+
   const result = await prisma.contactList.delete({
     where: { id },
+    select: {
+      id: true,
+    },
   });
 
   return result;
