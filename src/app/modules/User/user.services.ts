@@ -346,6 +346,7 @@ const getUsersFromDb = async (
         pricingOption: {
           select: {
             label: true,
+            durationInMonths: true
           },
         },
       },
@@ -493,6 +494,7 @@ const viewProfile = async (profileId: string) => {
           pricingOption: {
             select: {
               label: true,
+              durationInMonths: true
             },
           },
         },

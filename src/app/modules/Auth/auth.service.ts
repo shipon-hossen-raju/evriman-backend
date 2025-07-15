@@ -3,6 +3,7 @@ import {
   DynamicFieldStatus,
   DynamicFieldType,
   LoginType,
+  UserRole,
   UserStatus,
 } from "@prisma/client";
 import * as bcrypt from "bcrypt";
@@ -90,14 +91,31 @@ const loginUser = async (payload: {
 };
 
 // get user profile
-const getMyProfile = async (id: string) => {
+const getMyProfile = async (id: string, role: UserRole) => {
   const userProfile = await prisma.user.findUnique({
     where: {
       id: id,
     },
     include: {
       ContactList: true,
-      memories: true,
+      memories: {
+        select: {
+          id: true,
+          contacts: {
+            select: {
+              id: true,
+              contact: true
+            }
+          },
+          files: true,
+          tag: true,
+          songList: true,
+          content: true,
+          createdAt: true,
+          tagId: true,
+          isPublish: true
+        }
+      },
       deathVerification: true,
       memoryClaimRequests: true,
       offerCodes: true,
@@ -116,6 +134,7 @@ const getMyProfile = async (id: string) => {
           commissionReceiverId: true,
           commissionType: true,
           contactLimit: true,
+
         },
         orderBy: {
           createdAt: 'desc',
@@ -133,16 +152,9 @@ const getMyProfile = async (id: string) => {
           createdAt: true
         }
       },
-      referredUsers: true
+      referredUsers: true,
     },
   });
-
-  // find memories
-  const memoriesData = await prisma.userMemory.findMany({
-    where: {
-      userId: id
-    }
-  })
 
   // Get referredUsers count and data
   let referredUsersCount = 0;
@@ -213,10 +225,10 @@ const getMyProfile = async (id: string) => {
       partnerCode,
     };
 
-    return { userData, memoriesData, groupedByCategory };
+    return { userData,  groupedByCategory };
   }
 
-  return { userProfile, memoriesData, groupedByCategory };
+  return { userProfile, groupedByCategory };
 };
 
 // change password
