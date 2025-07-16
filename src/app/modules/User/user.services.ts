@@ -108,6 +108,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       phoneNumber: payload.phoneNumber,
       fullName: payload.fullName,
       role: payload.role,
+      gender: payload.gender,
       status: payload.status,
       address: payload.address,
       dob: payload.dob,

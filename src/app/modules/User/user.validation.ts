@@ -1,4 +1,5 @@
 import {
+  Gender,
   LoginType,
   PartnerType,
   UserRole,
@@ -34,6 +35,7 @@ export const CreateUserValidationSchema = z.object({
     )
     .optional(),
   role: z.nativeEnum(UserRole).default(UserRole.USER),
+  gender: z.nativeEnum(Gender).optional(),
   loginType: z.nativeEnum(LoginType).default(LoginType.USER),
   termsAccepted: z
     .literal(true, {
