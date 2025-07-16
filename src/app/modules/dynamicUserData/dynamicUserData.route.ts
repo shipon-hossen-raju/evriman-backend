@@ -5,7 +5,8 @@ import auth from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import dynamicUserDataController from "./dynamicUserData.controller";
 import { parseBodyFileUploader } from "./dynamicUserData.FileUploader";
-import { userDynamicFieldValueSchema } from "./dynamicUserData.validation";
+import { updateUserDynamicFieldValueSchema, userDynamicFieldValueSchema } from "./dynamicUserData.validation";
+import { parseBodyMiddleware } from "../../middlewares/parseBodyData";
 
 const dynamicUserDataRoute = express.Router();
 
@@ -24,8 +25,7 @@ dynamicUserDataRoute.patch(
   "/:id",
   auth(UserRole.USER, UserRole.PARTNER),
   fileUploader.uploadFile,
-  parseBodyFileUploader,
-  validateRequest(userDynamicFieldValueSchema),
+  parseBodyMiddleware,
   dynamicUserDataController.updateDynamicUserData
 );
 

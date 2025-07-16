@@ -3,6 +3,7 @@ import {
   DynamicFieldStatus,
   DynamicFieldType,
   LoginType,
+  UserRole,
   UserStatus,
 } from "@prisma/client";
 import * as bcrypt from "bcrypt";
@@ -41,7 +42,7 @@ const loginUser = async (payload: {
       isCompletePartnerProfile: true,
       isPaid: true,
       lastLogin: true,
-    }
+    },
   });
 
   if (!userData?.email) {
@@ -90,133 +91,615 @@ const loginUser = async (payload: {
 };
 
 // get user profile
-const getMyProfile = async (id: string) => {
-  const userProfile = await prisma.user.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      ContactList: true,
-      memories: true,
-      deathVerification: true,
-      memoryClaimRequests: true,
-      offerCodes: true,
-      payments: {
-        select: {
-          amountPay: true,
-          offerCodeId: true,
-          subscriptionPlan: true,
-          id: true, 
-          endDate: true,
-          startDate: true,
-          amountOfferCode: true,
-          amountPricing: true,
-          amountUserPoint: true, 
-          commissionAmount: true,
-          commissionReceiverId: true,
-          commissionType: true,
-          contactLimit: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 1, 
-      },
-      UserDynamicFieldValue: {
-        select: {
-          id: true,
-          category: true,
-          value: true,
-          fieldName: true,
-          fieldType: true,
-          text: true,
-          createdAt: true
-        }
-      },
-      referredUsers: true
-    },
-  });
+// const getMyProfile = async (id: string, role: UserRole) => {
+//   const userProfile = await prisma.user.findUnique({
+//     where: {
+//       id: id,
+//     },
+//     include: {
+//       ContactList: true,
+//       memories: {
+//         select: {
+//           id: true,
+//           contacts: {
+//             select: {
+//               id: true,
+//               contact: true,
+//             },
+//           },
+//           files: true,
+//           tag: true,
+//           songList: true,
+//           content: true,
+//           createdAt: true,
+//           tagId: true,
+//           isPublish: true,
+//         },
+//       },
+//       deathVerification: true,
+//       memoryClaimRequests: true,
+//       offerCodes: true,
+//       payments: {
+//         select: {
+//           amountPay: true,
+//           offerCodeId: true,
+//           subscriptionPlan: {
+//             select: {
+//               name: true,
+//               contactLimit: true,
+//             },
+//           },
+//           pricingOption: {
+//             select: {
+//               label: true,
+//             },
+//           },
+//           createdAt: true,
+//           id: true,
+//           endDate: true,
+//           startDate: true,
+//           amountOfferCode: true,
+//           amountPricing: true,
+//           amountUserPoint: true,
+//           commissionAmount: true,
+//           commissionReceiverId: true,
+//           commissionType: true,
+//           contactLimit: true,
+//         },
+//         orderBy: {
+//           createdAt: "desc",
+//         },
+//         take: 1,
+//       },
+//       UserDynamicFieldValue: {
+//         select: {
+//           id: true,
+//           category: true,
+//           value: true,
+//           fieldName: true,
+//           fieldType: true,
+//           text: true,
+//           createdAt: true,
+//         },
+//       },
+//       referredUsers: true,
+//     },
+//   });
 
-  // find memories
-  const memoriesData = await prisma.userMemory.findMany({
-    where: {
-      userId: id
-    }
-  })
+//   // Get referredUsers count and data
+//   let referredUsersCount = 0;
+//   let referredUsersData: any[] = [];
+//   if (userProfile && userProfile.referredUsers) {
+//     referredUsersCount = userProfile.referredUsers.length;
+//     referredUsersData = userProfile.referredUsers;
+//   }
+
+//   // find partner code
+//   const partnerCode = await prisma.partnerCode.findUnique({
+//     where: {
+//       userId: userProfile?.id,
+//     },
+//   });
+
+//   // group by Category for UserDynamicFieldValue
+//   // const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+//   //   Record<
+//   //     string,
+//   //     {
+//   //       id: string;
+//   //       label: string;
+//   //       fieldName: string;
+//   //       text: string;
+//   //       value: string;
+//   //       type: DynamicFieldType;
+//   //       options: string[];
+//   //       status: DynamicFieldStatus;
+//   //       category: DynamicFieldCategory;
+//   //       createdAt: Date;
+//   //       updatedAt: Date;
+//   //     }[]
+//   //   >
+//   // >((acc, category) => {
+//   //   const fields = (userProfile?.UserDynamicFieldValue ?? [])
+//   //     .filter((field) => field.category === category)
+//   //     .map((field) => ({
+//   //       id: field.id,
+//   //       label: field.fieldName,
+//   //       fieldName: field.fieldName,
+//   //       text: field.text ?? "",
+//   //       value: field.value ?? "",
+//   //       type: field.fieldType,
+//   //       options: [] as string[],
+//   //       status: DynamicFieldStatus.PUBLISHED,
+//   //       category: field.category,
+//   //       createdAt: field.createdAt,
+//   //       updatedAt: field.createdAt,
+//   //     }));
+
+//   //   acc[category] = fields;
+//   //   return acc;
+//   // }, {});
+
+//   const dynamicFieldsMain = await prisma.dynamicField.findMany({
+//     where: {
+//       status: "PUBLISHED",
+//     },
+//     orderBy: {
+//       createdAt: "desc",
+//     },
+//   });
+//   const userDynamicFieldsValueMain =
+//     await prisma.userDynamicFieldValue.findMany({
+//       where: {
+//         userId: id,
+//       },
+//       orderBy: {
+//         createdAt: "desc",
+//       },
+//     });
+//   // If the fieldName does not match in userDynamicFieldsValueMain, add it from dynamicFieldsMain.
+//   const dynamicFields = dynamicFieldsMain.map((field) => ({
+//     ...field,
+//     value:
+//       userDynamicFieldsValueMain.find(
+//         (userField) => userField.fieldName === field.fieldName
+//       )?.value ?? null,
+//   }));
+
+//   const allFields = [...dynamicFields, ...userDynamicFieldsValueMain];
+
+//   console.log("userDynamicFieldsValueMain ", userDynamicFieldsValueMain);
+//   console.log("dynamicFields ", dynamicFields);
+//   type MergedDynamicField = {
+//     id: string;
+//     fieldName: string;
+//     category: DynamicFieldCategory;
+//     type: DynamicFieldType;
+//     label?: string;
+//     options?: string[];
+//     status?: DynamicFieldStatus;
+//     value?: string | null;
+//     text?: string | null;
+//     createdAt: Date;
+//     updatedAt: Date;
+//   };
+
+//   // Group by category
+//   const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+//     Record<string, MergedDynamicField[]>
+//   >((acc, category) => {
+//     acc[category] = allFields.filter((field) => field.category === category);
+//     return {
+//       ...acc,
+//     };
+//   }, {});
+
+//   console.log("groupedByCategory ", groupedByCategory);
+
+//   if (userProfile) {
+//     const {
+//       password,
+//       UserDynamicFieldValue,
+//       referredUsers,
+//       ...profileWithoutPassword
+//     } = userProfile as any;
+
+//     const userData = {
+//       ...profileWithoutPassword,
+//       referredUsersCount,
+//       referredUsersData,
+//       partnerCode,
+//     };
+
+//     return { userData, groupedByCategory };
+//   }
+
+//   return { userProfile, groupedByCategory };
+// };
+type MergedDynamicField = {
+  id: string;
+  fieldName: string;
+  category: DynamicFieldCategory;
+  type: DynamicFieldType;
+  label?: string;
+  options?: string[];
+  status?: DynamicFieldStatus;
+  value?: string | null;
+  text?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+const getMyProfile = async (id: string, role: UserRole) => {
+  // const userProfile = await prisma.user.findUnique({
+  //   where: { id },
+  //   include: {
+  //     ContactList: true,
+  //     memories: {
+  //       select: {
+  //         id: true,
+  //         contacts: {
+  //           select: {
+  //             id: true,
+  //             contact: true,
+  //           },
+  //         },
+  //         files: true,
+  //         tag: true,
+  //         songList: true,
+  //         content: true,
+  //         createdAt: true,
+  //         tagId: true,
+  //         isPublish: true,
+  //       },
+  //     },
+  //     deathVerification: true,
+  //     memoryClaimRequests: true,
+  //     offerCodes: true,
+  //     payments: {
+  //       select: {
+  //         amountPay: true,
+  //         offerCodeId: true,
+  //         subscriptionPlan: {
+  //           select: {
+  //             name: true,
+  //             contactLimit: true,
+  //           },
+  //         },
+  //         pricingOption: {
+  //           select: {
+  //             label: true,
+  //           },
+  //         },
+  //         createdAt: true,
+  //         id: true,
+  //         endDate: true,
+  //         startDate: true,
+  //         amountOfferCode: true,
+  //         amountPricing: true,
+  //         amountUserPoint: true,
+  //         commissionAmount: true,
+  //         commissionReceiverId: true,
+  //         commissionType: true,
+  //         contactLimit: true,
+  //       },
+  //       orderBy: {
+  //         createdAt: "desc",
+  //       },
+  //       take: 1,
+  //     },
+  //     UserDynamicFieldValue: {
+  //       select: {
+  //         id: true,
+  //         category: true,
+  //         value: true,
+  //         fieldName: true,
+  //         fieldType: true,
+  //         text: true,
+  //         createdAt: true,
+  //         updatedAt: true,
+  //       },
+  //     },
+  //     referredUsers: true,
+  //   },
+  // });
 
   // Get referredUsers count and data
-  let referredUsersCount = 0;
-  let referredUsersData: any[] = [];
-  if (userProfile && userProfile.referredUsers) {
-    referredUsersCount = userProfile.referredUsers.length;
-    referredUsersData = userProfile.referredUsers;
-  }
 
-  // find partner code
-  const partnerCode = await prisma.partnerCode.findUnique({
-    where: {
-      userId: userProfile?.id,
+  console.log("id ", id);
+  console.log("role ", role);
+
+  const userProfile = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      userId: true,
+      fullName: true,
+      email: true,
+      address: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      loginType: true,
+      phoneNumber: true,
+      dob: true,
+      age: true,
+      idDocument: true,
+      gender: true,
+      referralCodeUsed: true,
+      userPoint: true,
+      isVerified: false,
+      isDeceased: false,
+      userImage: true,
+      isUser: true,
+      isPaid: true,
+      lastLogin: true,
+      isCompleteProfile: true,
+      ...(role === "USER" && {
+        memories: {
+          select: {
+            id: true,
+            contacts: {
+              select: {
+                id: true,
+                contact: true,
+              },
+            },
+            files: true,
+            tag: true,
+            songList: true,
+            content: true,
+            createdAt: true,
+            tagId: true,
+            isPublish: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        ContactList: {
+          select: {
+            id: true,
+            userId: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+            photoUrl: true,
+            dateOfBirth: true,
+            relationship: true,
+            isOver18: true,
+            note: true,
+            createdAt: true,
+            isDeath: true,
+            isDeathNotify: true,
+            guardianName: true,
+            guardianEmail: true,
+            guardianDob: true,
+            guardianPhoneNumber: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        deathVerification: {
+          select: {
+            id: true,
+            deathCertificate: true,
+            createdAt: true,
+            deceasedDob: true,
+            deceasedName: true,
+            deceasedProfileId: true,
+            extraNote: true,
+            isAdminVisit: true,
+            optionalNote: true,
+            relationship: true,
+            status: true,
+            userId: true,
+            requesterEmail: true,
+            requesterPhone: true,
+            requesterName: true,
+            requesterImage: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        memoryClaimRequests: {
+          select: {
+            id: true,
+            claimantDob: true,
+            claimantEmail: true,
+            claimantName: true,
+            claimantPhone: true,
+            contactId: true,
+            createdAt: true,
+            deathCertificate: true,
+            deceasedDob: true,
+            deceasedName: true,
+            deceasedProfileId: true,
+            optionalNote: true,
+            relationship: true,
+            status: true,
+          },
+        },
+        payments: {
+          select: {
+            id: true,
+            amountPay: true,
+            offerCodeId: true,
+            subscriptionPlan: {
+              select: {
+                id: true,
+                name: true,
+                contactLimit: true,
+              },
+            },
+            pricingOption: {
+              select: {
+                id: true,
+                label: true,
+              },
+            },
+            createdAt: true,
+            endDate: true,
+            startDate: true,
+            amountOfferCode: true,
+            amountPricing: true,
+            amountUserPoint: true,
+            commissionAmount: true,
+            commissionReceiverId: true,
+            commissionType: true,
+            contactLimit: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        offerCodes: {
+          select: {
+            id: true,
+            offerCode: {
+              select: {
+                id: true,
+                code: true,
+                expiresAt: true,
+                discountType: true,
+                discountValue: true,
+                applicablePlans: {
+                  select: {
+                    id: true,
+                    subscriptionPlan: {
+                      select: {
+                        id: true,
+                        name: true,
+                        contactLimit: true,
+                        isActive: true,
+                        pricingOptions: {
+                          select: {
+                            id: true,
+                            label: true,
+                            amount: true,
+                            eligibility: true,
+                            durationInMonths: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            offerCode: {
+              createdAt: "desc",
+            },
+          },
+        },
+      }),
+      ...(role === "PARTNER" && {
+        partnerImage: true,
+        contactLimit: true,
+        partnerCodeId: true,
+        businessName: true,
+        partnerType: true,
+        partnerAgreement: true,
+        bankName: true,
+        accountHolderName: true,
+        accountNumber: true,
+        shortCode: true,
+        partnerStatus: true,
+        isPartner: true,
+        isCompletePartnerProfile: true,
+        partner: {
+          select: {
+            partnerCode: true,
+          },
+        },
+        deathVerification: {
+          select: {
+            id: true,
+            deathCertificate: true,
+            createdAt: true,
+            deceasedDob: true,
+            deceasedName: true,
+            deceasedProfileId: true,
+            extraNote: true,
+            isAdminVisit: true,
+            optionalNote: true,
+            relationship: true,
+            status: true,
+            userId: true,
+            requesterEmail: true,
+            requesterPhone: true,
+            requesterName: true,
+            requesterImage: true,
+          },
+        },
+        _count: {
+          select: {
+            referredUsers: true,
+          },
+        },
+      }),
     },
   });
 
-  // group by Category for UserDynamicFieldValue
-  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
-    Record<
-      string,
-      {
-        id: string;
-        label: string;
-        fieldName: string;
-        text: string;
-        value: string;
-        type: DynamicFieldType;
-        options: string[];
-        status: DynamicFieldStatus;
-        category: DynamicFieldCategory;
-        createdAt: Date;
-        updatedAt: Date;
-      }[]
-    >
-  >((acc, category) => {
-    const fields = (userProfile?.UserDynamicFieldValue ?? [])
-      .filter((field) => field.category === category)
-      .map((field) => ({
-        id: field.id,
-        label: field.fieldName,
-        fieldName: field.fieldName,
-        text: field.text ?? "",
-        value: field.value ?? "",
-        type: field.fieldType,
-        options: [] as string[],
-        status: DynamicFieldStatus.PUBLISHED,
-        category: field.category,
-        createdAt: field.createdAt,
-        updatedAt: field.createdAt,
-      }));
+  // find dynamic fields
+  const dynamicFields = await prisma.dynamicField.findMany({
+    where: {
+      status: "PUBLISHED",
+    },
+  });
+  const userDynamic = await prisma.userDynamicFieldValue.findMany({
+    where: {
+      userId: id,
+    },
+    select: {
+      id: true,
+      userId: true,
+      category: true,
+      value: true,
+      fieldName: true,
+      fieldType: true,
+      text: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
 
-    acc[category] = fields;
-    return acc;
+  
+  type UserDynamicField = {
+    id: string;
+    category: DynamicFieldCategory;
+    value: string | null;
+    fieldName: string;
+    fieldType: DynamicFieldType;
+    text?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    userId?: string;
+  };
+
+  type DynamicFieldDefinition = {
+    id: string;
+    label: string;
+    fieldName: string;
+    type: DynamicFieldType;
+    options: string[]; // can be empty
+    status: DynamicFieldStatus;
+    category: DynamicFieldCategory;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
+  type MergedDynamicField = UserDynamicField | DynamicFieldDefinition;
+
+  const mergedDynamicFields: MergedDynamicField[] = [
+    ...userDynamic,
+    ...dynamicFields,
+  ];
+
+  // check duplication
+  const distinctDynamicFields = mergedDynamicFields.filter(
+    (field, index) =>
+      mergedDynamicFields.findIndex(
+        (f) => f.fieldName === field.fieldName
+      ) === index
+  );
+
+  // Group by category
+  const groupedByCategory = Object.values(DynamicFieldCategory).reduce<
+    Record<string, MergedDynamicField[]>
+  >((acc, category) => {
+    acc[category] = distinctDynamicFields.filter(
+      (field) => field.category === category
+    );
+    return {
+      ...acc,
+    };
   }, {});
 
-  if (userProfile) {
-    const {
-      password,
-      UserDynamicFieldValue,
-      referredUsers,
-      ...profileWithoutPassword
-    } = userProfile as any;
-
-    const userData = {
-      ...profileWithoutPassword,
-      referredUsersCount,
-      referredUsersData,
-      partnerCode,
-    };
-
-    return { userData, memoriesData, groupedByCategory };
-  }
-
-  return { userProfile, memoriesData, groupedByCategory };
+  return { userProfile, groupedByCategory };
 };
 
 // change password
@@ -234,10 +717,9 @@ const changePassword = async (
     where: { id },
     select: {
       id: true,
-      status: true, 
-      password: true, 
-
-    }
+      status: true,
+      password: true,
+    },
   });
 
   if (!user) {

@@ -10,5 +10,5 @@ export const offerCodeSchema = z.object({
   expiresAt: z.string().datetime(),
   applicablePlans: z.array(z.string()).optional(),
   pricingOptionsLevelId: z.array(z.string()).optional(),
-  optionLevelId: z.nativeEnum(LevelId),
+  optionLevelId: z.nativeEnum(LevelId).optional(),
 });

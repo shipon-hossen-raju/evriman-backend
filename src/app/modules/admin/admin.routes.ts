@@ -40,7 +40,7 @@ router.get(
 // Partner Manage
 router.get(
   "/get-single-partner/:profileId",
-  // auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   adminController.partnerSingleProfile
 );
 

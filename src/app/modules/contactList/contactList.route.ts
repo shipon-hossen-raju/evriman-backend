@@ -46,7 +46,7 @@ contactListRouter.get(
 // delete contact list
 contactListRouter.delete(
   "/:id",
-  auth(UserRole.USER, UserRole.PARTNER),
+  auth(),
   contactListController.deleteContactList
 );
 

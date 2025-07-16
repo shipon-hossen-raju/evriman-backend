@@ -108,6 +108,7 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       phoneNumber: payload.phoneNumber,
       fullName: payload.fullName,
       role: payload.role,
+      gender: payload.gender,
       status: payload.status,
       address: payload.address,
       dob: payload.dob,
@@ -335,11 +336,18 @@ const getUsersFromDb = async (
         endDate: true,
         startDate: true,
         status: true,
+        amountPay: true,
         subscriptionPlan: {
           select: {
             name: true,
             contactLimit: true,
-            pricingOptions: true,
+            // pricingOptions: true,
+          },
+        },
+        pricingOption: {
+          select: {
+            label: true,
+            durationInMonths: true
           },
         },
       },
@@ -404,7 +412,6 @@ const getUsersFromDb = async (
             ContactList: true,
           },
         },
-        
       },
       skip,
       orderBy: {
@@ -468,7 +475,13 @@ const viewProfile = async (profileId: string) => {
         select: {
           amountPay: true,
           offerCodeId: true,
-          subscriptionPlan: true,
+          subscriptionPlan: {
+            select: {
+              name: true,
+              contactLimit: true,
+              // pricingOptions: true,
+            },
+          },
           id: true,
           endDate: true,
           startDate: true,
@@ -479,7 +492,14 @@ const viewProfile = async (profileId: string) => {
           commissionReceiverId: true,
           commissionType: true,
           contactLimit: true,
+          pricingOption: {
+            select: {
+              label: true,
+              durationInMonths: true
+            },
+          },
         },
+        
         orderBy: {
           createdAt: "desc",
         },
@@ -640,6 +660,7 @@ const getAllPartnerFromDb = async (
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      partnerType: true,
       partner: {
         select: {
           partnerCode: true,
@@ -692,6 +713,7 @@ const getPartner = async (id: string) => {
       shortCode: true,
       partnerAgreement: true,
       partnerStatus: true,
+      partnerType: true,
     },
   });
 

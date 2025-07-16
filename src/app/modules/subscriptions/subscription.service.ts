@@ -86,7 +86,7 @@ const updateSubscription = async (id: string, payload: SubscriptionPayload) => {
   });
 
   if (!result) {
-    throw new ApiError(httpStatus.NOT_FOUND,"Subscription not found");
+    throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found");
   }
 
   const updatedResult = await prisma.subscriptionPlan.update({
@@ -123,16 +123,20 @@ const updateSubscription = async (id: string, payload: SubscriptionPayload) => {
 // find & delete subscription
 const deleteSubscription = async (id: string) => {
   // First, delete related pricing options
+  
+  const findSubscription = await prisma.subscriptionPlan.findUnique({
+    where: { id },
+  });
+  if (!findSubscription) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Subscription not found!");
+  }
+  
   const pricingOptions = await prisma.pricingOption.deleteMany({
     where: { subscriptionPlanId: id },
   });
-
   // Then, delete the subscription plan
   const deletedResult = await prisma.subscriptionPlan.delete({
     where: { id },
-    include: {
-      pricingOptions: true,
-    },
   });
 
   return { deletedResult, pricingOptions };

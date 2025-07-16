@@ -185,9 +185,13 @@ const createPaymentRequest = async (
     // store subscription
     const startDate = new Date();
     const endDate = new Date(startDate);
-    endDate.setMonth(
-      endDate.getMonth() + (findPricingPOI.durationInMonths || 0)
+    endDate.setFullYear(
+      endDate.getFullYear() + (findPricingPOI.durationInMonths || 0) // durationInMonths mean Year
     );
+    // if lifetime
+    if (findPricingPOI.durationInMonths === 0 || findPricingPOI.durationInMonths === null) {
+      endDate.setFullYear(endDate.getFullYear() + 100);
+    }
 
     const storeDatabase = {
       ...metadata,

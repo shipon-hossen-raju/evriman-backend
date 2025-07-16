@@ -15,9 +15,8 @@ export const parseBodyFileUploader = catchAsync(
     
     const file = req.file;
 
-    if (file) {
-      const bodyData = JSON.parse(req.body.data);
-
+    let bodyData = JSON.parse(req.body.data);
+    if (file && bodyData.fieldType === "FILE") {
       const uploadedFile = await fileUploader.uploadToDigitalOcean(file);
       fileUrl = uploadedFile?.Location;
 
@@ -29,7 +28,7 @@ export const parseBodyFileUploader = catchAsync(
       // const bodyData = JSON.parse(req.body.data);
 
       userData = {
-        ...req.body,
+        ...bodyData,
       };
     }
 
