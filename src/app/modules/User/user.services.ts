@@ -929,10 +929,22 @@ const updatePartnerStatus = async (
     });
 
     if (!findPartner) {
-      await prisma.partnerCode.create({
+      const result = await prisma.partnerCode.create({
         data: {
           partnerCode: partnerCode,
           userId: updatedUser.id,
+        },
+      });
+      await prisma.user.update({
+        where: {
+          id: updatedUser.id,
+        },
+        data: {
+          partnerCodeId: result.id,
+        },
+        select: {
+          id: true,
+          partnerCodeId: true,
         },
       });
     }

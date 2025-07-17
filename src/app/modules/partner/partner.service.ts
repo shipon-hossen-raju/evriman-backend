@@ -87,9 +87,10 @@ const viewProfileIntoDb = async (profileId: string) => {
     },
   });
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: {
-      referralCodeUsed: partnerCode?.partnerCode,
+      // referralCodeUsed: partnerCode?.partnerCode,
+      id: profileId,
     },
     select: {
       id: true,
@@ -114,17 +115,39 @@ const viewProfileIntoDb = async (profileId: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // find payment data
+  // find last payment data
   const paymentHistory = await prisma.payment.findFirst({
     where: {
-      userId: user.id,
-      status: "COMPLETED",
+      userId: user?.id,
     },
-    include: {
-      subscriptionPlan: true,
-      pricingOption: true,
+    select: {
+      id: true,
+      amountPay: true,
+      startDate: true,
+      endDate: true,
+      contactLimit: true,
+      createdAt: true,
+      pricingOption: {
+        select: {
+          id: true,
+          label: true,
+          amount: true,
+          eligibility: true,
+        },
+      },
+      subscriptionPlan: {
+        select: {
+          id: true,
+          name: true,
+          contactLimit: true,
+          isActive: true,
+        },
+      },
     },
-  });
+    orderBy: {
+      createdAt: "desc",
+    },
+  })
 
   return { user, paymentHistory };
 };

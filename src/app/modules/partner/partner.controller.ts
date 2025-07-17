@@ -57,7 +57,7 @@ const myWallet = catchAsync(async (req, res) => {
 });
 
 const viewProfile = catchAsync(async (req, res) => {
-  const result = await partnerService.viewProfileIntoDb(req.user.id);
+  const result = await partnerService.viewProfileIntoDb(req.params.profileId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

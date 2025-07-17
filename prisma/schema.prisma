@@ -50,67 +50,66 @@ enum Gender {
 }
 
 model User {
-  id                    String                  @id @default(auto()) @map("_id") @db.ObjectId
-  userId                String                  @unique
-  fullName              String
-  email                 String                  @unique
-  fcmToken              String?
-  otp                   Int?
-  expirationOtp         DateTime?
-  password              String
-  address               String?
-  role                  UserRole                @default(USER)
-  status                UserStatus              @default(ACTIVE)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  loginType             LoginType               @default(USER)
-  phoneNumber           String
-  dob                   DateTime?
-  age                   Int                     @default(0)
-  idDocument            String?
-  gender                Gender?
+  id                       String                  @id @default(auto()) @map("_id") @db.ObjectId
+  userId                   String                  @unique
+  fullName                 String
+  email                    String                  @unique
+  fcmToken                 String?
+  otp                      Int?
+  expirationOtp            DateTime?
+  password                 String
+  address                  String?
+  role                     UserRole                @default(USER)
+  status                   UserStatus              @default(ACTIVE)
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  loginType                LoginType               @default(USER)
+  phoneNumber              String
+  dob                      DateTime?
+  age                      Int                     @default(0)
+  idDocument               String?
+  gender                   Gender?
   // reference
-  referralCodeUsed      String?
-  referralCode          String                  @unique
-  userPoint             Int                     @default(0)
+  referralCodeUsed         String?
+  referralCode             String                  @unique
+  userPoint                Int                     @default(0)
   // Relation: Users who used this user's referral code
-  referredUsers         UserReferral[]          @relation("ReferrerToReferred")
+  referredUsers            UserReferral[]          @relation("ReferrerToReferred")
   // Relation: This user used which referral code
-  usedReferral          UserReferral[]          @relation("ReferredToReferrer")
-  termsAccepted         Boolean                 @default(false)
-  privacyAccepted       Boolean                 @default(false)
-  isVerified            Boolean                 @default(false)
-  isDeceased            Boolean                 @default(false)
-  userImage             String                  @default("")
-  partnerImage          String                  @default("")
-  offerCodes            UserOfferCode[]
-  UserDynamicFieldValue UserDynamicFieldValue[]
-  ContactList           ContactList[]
-  contactLimit          Int                     @default(1)
-  memories              UserMemory[]            @relation("UserMemories")
-  deathVerification     DeathVerification[]
-  memoryClaimRequests   MemoryClaimRequest[]
-  partner               PartnerCode?            @relation(fields: [partnerCodeId], references: [id])
-  partnerCodeId         String?                 @db.ObjectId
-
+  usedReferral             UserReferral[]          @relation("ReferredToReferrer")
+  termsAccepted            Boolean                 @default(false)
+  privacyAccepted          Boolean                 @default(false)
+  isVerified               Boolean                 @default(false)
+  isDeceased               Boolean                 @default(false)
+  userImage                String                  @default("")
+  partnerImage             String                  @default("")
+  offerCodes               UserOfferCode[]
+  UserDynamicFieldValue    UserDynamicFieldValue[]
+  ContactList              ContactList[]
+  contactLimit             Int                     @default(1)
+  memories                 UserMemory[]            @relation("UserMemories")
+  deathVerification        DeathVerification[]
+  memoryClaimRequests      MemoryClaimRequest[]
+  partner                  PartnerCode?            @relation(fields: [partnerCodeId], references: [id])
+  partnerCodeId            String?                 @db.ObjectId
   // partner information
-  businessName      String?
-  partnerType       PartnerType?
-  partnerAgreement  Boolean?
-  bankName          String?             @default("")
-  accountHolderName String?             @default("")
-  accountNumber     String?             @default("")
-  shortCode         String?             @default("")
-  partnerStatus     VerificationStatus? @default(PENDING)
-
-  isPartner                Boolean  @default(false)
-  isUser                   Boolean  @default(false)
-  isPaid                   Boolean  @default(false)
-  isCompleteProfile        Boolean  @default(false)
-  isCompletePartnerProfile Boolean  @default(false)
-  lastLogin                DateTime @default(now())
-
-  payments Payment[] @relation("PaymentUser")
+  businessName             String?
+  partnerType              PartnerType?
+  partnerAgreement         Boolean?
+  bankName                 String?                 @default("")
+  accountHolderName        String?                 @default("")
+  accountNumber            String?                 @default("")
+  shortCode                String?                 @default("")
+  partnerStatus            VerificationStatus?     @default(PENDING)
+  isPartner                Boolean                 @default(false)
+  isUser                   Boolean                 @default(false)
+  isPaid                   Boolean                 @default(false)
+  isCompleteProfile        Boolean                 @default(false)
+  isCompletePartnerProfile Boolean                 @default(false)
+  lastLogin                DateTime                @default(now())
+  payments                 Payment[]               @relation("PaymentUser")
+  notificationS            Notification[]          @relation("Sender")
+  notificationR            Notification[]          @relation("Receiver")
 
   @@map("users")
 }
@@ -173,6 +172,23 @@ model MemoryClaimRequest {
   updatedAt DateTime @updatedAt
 
   @@map("memory_claim_requests")
+}
+
+// Notification
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName  String   @default("")
+  receiverId String   @db.ObjectId
+  senderId   String   @db.ObjectId
+  receiver   User     @relation("Receiver", fields: [receiverId], references: [id])
+  sender     User     @relation("Sender", fields: [senderId], references: [id])
+  title      String
+  body       String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("notifications")
 }
 
 // =======================================================
