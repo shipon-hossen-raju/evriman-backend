@@ -19,7 +19,6 @@ const createDynamicUserData = catchAsync(async (req, res) => {
 
 // update dynamic user data
 const updateDynamicUserData = catchAsync(async (req, res) => {
-  const { id } = req.params;
   const updatedDynamicUserData = await dynamicUserDataService.updateDynamicUserData(req);
 
   sendResponse(res, {

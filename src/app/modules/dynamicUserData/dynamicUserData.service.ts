@@ -65,9 +65,12 @@ const updateDynamicUserData = async (req: Request) => {
 
   const updateResult = await prisma.userDynamicFieldValue.update({
     where: { id },
-    data: { 
-      
-     },
+    data: {
+      ...payload,
+      ...(existingDynamicUserData.fieldType === "FILE" && {
+        value: existingDynamicUserData.value,
+      }),
+    },
   });
 
   return updateResult;
