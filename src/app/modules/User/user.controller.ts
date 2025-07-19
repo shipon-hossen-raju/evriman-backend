@@ -75,19 +75,21 @@ const getNotification = catchAsync(async (req: Request, res: Response) => {
 });
 
 // get all user form db
-const notificationDeathStatus = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.notificationDeathStatusIntoDb(
-    req.user.id,
-    req.body
-  );
+const notificationDeathStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await userService.notificationDeathStatusIntoDb(
+      req.user.id,
+      req.body
+    );
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Users retrieve successfully!",
-    data: result,
-  });
-});
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Users retrieve successfully!",
+      data: result,
+    });
+  }
+);
 
 // get all user form db
 const getUsers = catchAsync(async (req: Request, res: Response) => {

@@ -1,8 +1,8 @@
 import { DynamicFieldCategory, UserDynamicFieldValue } from "@prisma/client";
 import { Request } from "express";
 import ApiError from "../../../errors/ApiErrors";
-import prisma from "../../../shared/prisma";
 import { fileUploader } from "../../../helpars/fileUploader";
+import prisma from "../../../shared/prisma";
 import { updateUserDynamicFieldValueSchema } from "./dynamicUserData.validation";
 
 // create dynamic User Data Service
@@ -43,19 +43,28 @@ const updateDynamicUserData = async (req: Request) => {
   if (!existingDynamicUserData) {
     throw new ApiError(404, "Dynamic user data not found");
   }
+  if (userId !== existingDynamicUserData.userId) {
+    throw new ApiError(
+      403,
+      "You are not authorized to update this dynamic user data"
+    );
+  }
 
   if (req.file) {
     const image = await fileUploader.uploadToDigitalOcean(req.file);
     const imageUrl = image?.Location;
     await prisma.userDynamicFieldValue.update({
       where: { id },
-      data: { 
-        value: existingDynamicUserData.fieldType === "FILE" ? imageUrl : existingDynamicUserData.value
+      data: {
+        value:
+          existingDynamicUserData.fieldType === "FILE"
+            ? imageUrl
+            : existingDynamicUserData.value,
       },
       select: {
-        value: true
-      }
-    })
+        value: true,
+      },
+    });
   }
 
   const validation = updateUserDynamicFieldValueSchema.safeParse(parsed);
@@ -66,10 +75,11 @@ const updateDynamicUserData = async (req: Request) => {
   const updateResult = await prisma.userDynamicFieldValue.update({
     where: { id },
     data: {
-      ...payload,
-      ...(existingDynamicUserData.fieldType === "FILE" && {
-        value: existingDynamicUserData.value,
-      }),
+      category: parsed.category,
+      fieldName: parsed.fieldName,
+      fieldType: parsed.fieldType,
+      value: parsed.value,
+      text: parsed.text,
     },
   });
 
