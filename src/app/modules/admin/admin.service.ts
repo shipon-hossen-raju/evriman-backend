@@ -1,14 +1,5 @@
 import prisma from "../../../shared/prisma";
 
-// const createIntoDb = async (data: any) => {
-//   const transaction = await prisma.$transaction(async (prisma) => {
-//     const result = await prisma.admin.create({ data });
-//     return result;
-//   });
-
-//   return transaction;
-// };
-
 const getAdminHome = async () => {
   // user
   const { usersAndCount } = await totalSalesIntoDb();

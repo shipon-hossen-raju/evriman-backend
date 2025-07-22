@@ -6,6 +6,32 @@ import prisma from "../../../shared/prisma";
 // create a new death verification record
 const createIntoDb = async (payload: DeathVerification) => {
   const result = await prisma.deathVerification.create({ data: payload });
+
+  if (result.deceasedProfileId) {
+    const profileId = result.deceasedProfileId;
+    const user = await prisma.user.findUnique({
+      where: {
+        userId: profileId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        isDeceased: true,
+        email: true,
+        fullName: true
+      }
+    });
+    if (!user) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "User not found for the provided deceasedProfileId"
+      );
+    }
+
+    
+
+  }
+
   return result;
 };
 

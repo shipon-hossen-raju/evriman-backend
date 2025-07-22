@@ -50,21 +50,10 @@ const updateDynamicUserData = async (req: Request) => {
     );
   }
 
+  let imageUrl;
   if (req.file) {
     const image = await fileUploader.uploadToDigitalOcean(req.file);
-    const imageUrl = image?.Location;
-    await prisma.userDynamicFieldValue.update({
-      where: { id },
-      data: {
-        value:
-          existingDynamicUserData.fieldType === "FILE"
-            ? imageUrl
-            : existingDynamicUserData.value,
-      },
-      select: {
-        value: true,
-      },
-    });
+     imageUrl = image?.Location;
   }
 
   const validation = updateUserDynamicFieldValueSchema.safeParse(parsed);
@@ -78,7 +67,7 @@ const updateDynamicUserData = async (req: Request) => {
       category: parsed.category,
       fieldName: parsed.fieldName,
       fieldType: parsed.fieldType,
-      value: parsed.value,
+      value: parsed.fieldType === "FILE" ? imageUrl : parsed.value || existingDynamicUserData.value,
       text: parsed.text,
     },
   });
