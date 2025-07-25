@@ -1,5 +1,6 @@
 import express from "express";
 import { adminRoutes } from "../modules/admin/admin.routes";
+import { authRoutes } from "../modules/Auth/auth.routes";
 import contactListRouter from "../modules/contactList/contactList.route";
 import { deathVerificationRoutes } from "../modules/deathVerification/deathVerification.routes";
 import dynamicFieldRoute from "../modules/dynamicField/dynamicField.rotue";
@@ -10,9 +11,8 @@ import { partnerRoutes } from "../modules/partner/partner.routes";
 import { paymentRoutes } from "../modules/payment/payment.routes";
 import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.route";
 import tagsRoute from "../modules/tags/tags.rotue";
+import { userRoutes } from "../modules/User/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
-import { userRoutes } from "../modules/user/user.route";
-import { authRoutes } from "../modules/auth/auth.routes";
 
 const router = express.Router();
 
