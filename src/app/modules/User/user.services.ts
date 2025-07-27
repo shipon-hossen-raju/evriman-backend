@@ -29,6 +29,7 @@ import {
   generateUniquePartnerCode,
   generateUniqueUserId,
 } from "./user.utils";
+import { sendSingleNotification } from "../notification/notification.utility";
 
 // Create a new user in the database.
 const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
@@ -149,6 +150,8 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       isCompleteProfile: true,
       isCompletePartnerProfile: true,
       isPaid: true,
+      businessName: true,
+      isPartner: true,
     };
     if (justEmail?.id && justEmail?.email) {
       result = await tx.user.update({
@@ -215,6 +218,16 @@ const createUserIntoDb = async (payload: User & { isNewData?: boolean }) => {
       OtpHtml(otp),
       `Welcome to our service! Your OTP is: ${otp}`
     );
+
+    // send notification partner to admin
+    if (result?.isPartner && result?.role === "USER") {
+      await sendSingleNotification({
+        title: `sent a Partner Request.`,
+        body: "A new partner request has been submitted.",
+        type: "PARTNER_REQUEST",
+        senderId: result.id,
+      });
+    }
 
     return {
       result,
@@ -347,7 +360,7 @@ const getUsersFromDb = async (
         pricingOption: {
           select: {
             label: true,
-            durationInMonths: true
+            durationInMonths: true,
           },
         },
       },
@@ -495,11 +508,11 @@ const viewProfile = async (profileId: string) => {
           pricingOption: {
             select: {
               label: true,
-              durationInMonths: true
+              durationInMonths: true,
             },
           },
         },
-        
+
         orderBy: {
           createdAt: "desc",
         },

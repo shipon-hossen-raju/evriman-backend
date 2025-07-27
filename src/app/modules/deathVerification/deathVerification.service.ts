@@ -2,10 +2,11 @@ import { DeathVerification, VerificationStatus } from "@prisma/client";
 import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
+import { sendSingleNotification } from "../notification/notification.utility";
 
 // create a new death verification record
 const createIntoDb = async (payload: DeathVerification) => {
-  const result = await prisma.deathVerification.create({ data: payload });
+  const result = await prisma.deathVerification.create({ data: payload , select: { id: true, deceasedProfileId: true}});
 
   if (result.deceasedProfileId) {
     const profileId = result.deceasedProfileId;
@@ -15,11 +16,7 @@ const createIntoDb = async (payload: DeathVerification) => {
       },
       select: {
         id: true,
-        userId: true,
-        isDeceased: true,
-        email: true,
-        fullName: true
-      }
+      },
     });
     if (!user) {
       throw new ApiError(
@@ -27,10 +24,17 @@ const createIntoDb = async (payload: DeathVerification) => {
         "User not found for the provided deceasedProfileId"
       );
     }
-
-    
-
+    // send notification to admin
+    await sendSingleNotification({
+      dataId: result.id,
+      receiverId: user.id,
+      title: "Death-verification Request.",
+      type: "DEATH_VERIFICATION",
+      body: "A new death verification has been created",
+    });
   }
+  
+
 
   return result;
 };
@@ -182,12 +186,21 @@ const statusUpdateIntoDb = async (
           isDeathNotify: true,
         },
       });
+
+      // send notification & mail
+      await sendSingleNotification({
+        receiverId: user.id,
+        title: "Death Verification",
+        type: "DEATH_VERIFICATION",
+        body: "Your Death Certificate is being verified by the Admin",
+      });
     }
 
     const result = await prisma.deathVerification.update({
       where: { id },
       data: { status: statusCode, extraNote: payload.extraNote || "" },
     });
+
     return result;
   });
 

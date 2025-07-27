@@ -145,31 +145,26 @@ model DeathVerification {
 }
 
 model MemoryClaimRequest {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
   // Claimant Information
-  claimantName  String
-  claimantEmail String
-  claimantPhone String
-  claimantDob   DateTime
-
+  claimantName      String
+  claimantEmail     String
+  claimantPhone     String
+  claimantDob       DateTime
   // Deceased Information
   deceasedName      String
   deceasedProfileId String
   relationship      String
   deceasedDob       DateTime
-
   // File Upload & Notes
-  deathCertificate String
-  optionalNote     String?
-  contactId        String? @db.ObjectId
-
-  status VerificationStatus @default(PENDING)
-  user   User?              @relation(fields: [userId], references: [userId])
-  userId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deathCertificate  String
+  optionalNote      String?
+  contactId         String?            @db.ObjectId
+  status            VerificationStatus @default(PENDING)
+  user              User?              @relation(fields: [userId], references: [userId])
+  userId            String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@map("memory_claim_requests")
 }
@@ -177,14 +172,23 @@ model MemoryClaimRequest {
 // Notification
 enum NotificationType {
   DEATH_VERIFICATION
+  PARTNER_REQUEST
+  MEMORY_CLAIM_REQUEST
+  PAYMENT_SUBSCRIPTION
+  MEMORIES
+  SPACIAL_OFFER
+  CONTACT_VERIFICATION
+  YOU_ARE_DEAD
+  OTHER_CONTACT
 }
 
 model Notification {
   id         String           @id @default(auto()) @map("_id") @db.ObjectId
-  receiverId String?           @db.ObjectId
-  senderId   String?           @db.ObjectId
-  receiver   User?             @relation("Receiver", fields: [receiverId], references: [id])
-  sender     User?             @relation("Sender", fields: [senderId], references: [id])
+  dataId     String?          @db.ObjectId
+  receiverId String?          @db.ObjectId
+  senderId   String?          @db.ObjectId
+  receiver   User?            @relation("Receiver", fields: [receiverId], references: [id])
+  sender     User?            @relation("Sender", fields: [senderId], references: [id])
   title      String
   body       String
   type       NotificationType

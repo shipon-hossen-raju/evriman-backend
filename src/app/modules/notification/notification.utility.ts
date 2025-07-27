@@ -37,6 +37,7 @@ export const sendBulkNotification = async ({
 
 // Send notification to a single user
 export const sendSingleNotification = async (payload: {
+  dataId?: string;
   receiverId?: string;
   senderId?: string;
   type: NotificationType;
@@ -48,6 +49,7 @@ export const sendSingleNotification = async (payload: {
       data: {
         ...(payload.receiverId ? { receiverId: payload.receiverId } : {}),
         ...(payload.senderId ? { senderId: payload.senderId } : {}),
+        ...(payload.dataId ? { dataId: payload.dataId } : {}),
         title: payload.title,
         type: payload.type,
         body: payload.body ?? "",

@@ -519,10 +519,151 @@ const getAdminNotification = async () => {
   };
 };
 
+const getAdminNotifications = async (query: any) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const where: any = {
+    OR: [
+      {
+        type: "DEATH_VERIFICATION",
+      },
+      {
+        type: "PARTNER_REQUEST",
+      },
+      {
+        type: "MEMORY_CLAIM_REQUEST",
+      },
+      {
+        type: "PAYMENT_SUBSCRIPTION",
+      },
+    ],
+  };
+
+  const findAllNotification = await prisma.notification.findMany({
+    where: where,
+    skip,
+    take: limit,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const total = await prisma.notification.count({ where });
+
+  for (const notification of findAllNotification) {
+    if (notification.type === "DEATH_VERIFICATION") {
+      const deathVerification = await prisma.deathVerification.findUnique({
+        where: {
+          id: notification.dataId as string,
+        },
+        select: {
+          id: true,
+          status: true,
+          deceasedProfileId: true
+        }
+      });
+      const user = await prisma.user.findUnique({
+        where: {
+          userId: deathVerification?.deceasedProfileId as string,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          userImage: true
+        }
+      })
+
+      if (user) {
+        // (notification as any).label = "Death Verification";
+        (notification as any).user = user;
+        // (notification as any).status = deathVerification.status;
+      }
+    } else if (notification.type === "PARTNER_REQUEST") {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: notification.senderId as string,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          partnerImage: true
+        }
+      });
+      if (user) {
+        (notification as any).user = user;
+      }
+    } else if (notification.type === "MEMORY_CLAIM_REQUEST") {
+      const claimMemories = await prisma.memoryClaimRequest.findUnique({
+        where: {
+          id: notification.dataId as string,
+        },
+        select: {
+          id: true,
+          status: true,
+          claimantName: true,
+          deceasedProfileId: true,
+        }
+      });
+      if (claimMemories) {
+        const user = await prisma.user.findUnique({
+          where: {
+            userId: claimMemories.deceasedProfileId as string,
+          },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            userImage: true
+          }
+        });
+        if (user) {
+          (notification as any).user = user;
+        }
+      }
+    } else if (notification.type === "PAYMENT_SUBSCRIPTION") {
+      const payment = await prisma.payment.findUnique({
+        where: {
+          id: notification.dataId as string,
+        },
+        select: {
+          id: true,
+          status: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              userImage: true
+            }
+          }
+        }
+      });
+      if (payment) {
+        (notification as any).user = payment.user;
+      }
+    }
+  }
+
+  return {
+    meta: {
+      page,
+      limit,
+      total: total,
+      pages: Math.ceil(total / limit)
+    },
+    notifications: findAllNotification
+  }
+}
+
 export const adminService = {
   getAdminHome,
   totalSalesIntoDb,
   partnerManageIntoDb,
   partnerSingleProfileIntoDb,
-  getAdminNotification,
+  // getAdminNotification,
+  getAdminNotifications
 };

@@ -3,6 +3,7 @@ import { stripe } from "../../../config/stripe.config";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
 import { dateOutput } from "../../../utils/date";
+import { sendSingleNotification } from "../notification/notification.utility";
 
 const createIntoDb = async (data: any) => {
   const transaction = await prisma.$transaction(async (prisma) => {
@@ -295,6 +296,23 @@ const paymentConfirmIntoDb = async (payload: {
       data: {
         status: payload.status,
       },
+      select: {
+        id: true,
+        userId: true,
+        amountPay: true,
+        subscriptionPlan: {
+          select: {
+            name: true,
+          }
+        },
+        pricingOption: {
+          select: {
+            id: true,
+            label: true,
+            durationInMonths: true
+          }
+        }
+      }
     });
 
     if (payload.status === "COMPLETED") {
@@ -336,6 +354,15 @@ const paymentConfirmIntoDb = async (payload: {
           select: { id: true, userPoint: true },
         });
       }
+
+      // create notification to admin
+      await sendSingleNotification({
+        dataId: result.id,
+        receiverId: userUpdate.id,
+        title: `Active ${result?.subscriptionPlan?.name} £${result?.amountPay} for ${result?.pricingOption?.durationInMonths} years`,
+        type: "PAYMENT_SUBSCRIPTION",
+        body: "A new payment has been created",
+      });
     } else {
       await prisma.user.update({
         where: {

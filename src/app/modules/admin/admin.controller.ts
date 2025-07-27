@@ -42,7 +42,7 @@ const totalSales = catchAsync(async (req, res) => {
 const partnerManage = catchAsync(async (req, res) => {
   const topSales = req?.query?.topSales as string;
   const limit = (req?.query?.limit as string) || 10;
-  
+
   const result = await adminService.partnerManageIntoDb(
     topSales,
     Number(limit)
@@ -58,9 +58,7 @@ const partnerManage = catchAsync(async (req, res) => {
 
 // Partner manage
 const adminNotification = catchAsync(async (req, res) => {
-  
-  const result = await adminService.getAdminNotification(
-  );
+  const result = await adminService.getAdminNotifications(req.query);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

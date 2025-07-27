@@ -4,6 +4,7 @@ import prisma from "../../../shared/prisma";
 import { dateInput, dateOutput } from "../../../utils/date";
 import { IPaginationOptions } from "../../../interfaces/paginations";
 import { paginationHelper } from "../../../helpars/paginationHelper";
+import { sendBulkNotification } from "../notification/notification.utility";
 
 // create user memory
 const createUserMemory = async (payload: UserMemory) => {
@@ -62,6 +63,15 @@ const createUserMemory = async (payload: UserMemory) => {
     ...memory,
     publish: dateOutput(memory.publish),
   };
+
+  // send notification
+  // await sendBulkNotification({
+  //   title: "New Memory",
+  //   body: "A new memory has been created",
+  //   type: "MEMORIES",
+  //   senderId: payload.userId,
+  //   receiverIds: existingContactIds,
+  // })
 
   return formattedMemory;
 };
