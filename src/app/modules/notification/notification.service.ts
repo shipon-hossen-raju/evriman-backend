@@ -27,7 +27,7 @@ const getMyNotificationFromDb = async (req: Request) => {
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
-  
+
   let where: any = {};
 
   const [result, total] = await Promise.all([
@@ -66,15 +66,110 @@ const getByIdFromDb = async (id: string, userId: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  const result = await prisma.notification.update({
+  const notification = await prisma.notification.update({
     where: { id },
     data: { isRead: true },
   });
-  if (!result) {
+  if (!notification) {
     throw new ApiError(httpStatus.NOT_FOUND, "Notification not found");
   }
+  if (findUser.role === "ADMIN" || findUser.role === "SUPER_ADMIN") {
+    if (notification.type === "DEATH_VERIFICATION") {
+      const deathVerification = await prisma.deathVerification.findUnique({
+        where: {
+          id: notification.dataId as string,
+        },
+        select: {
+          id: true,
+          status: true,
+          deceasedProfileId: true,
+        },
+      });
+      const user = await prisma.user.findUnique({
+        where: {
+          userId: deathVerification?.deceasedProfileId as string,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          userImage: true,
+        },
+      });
 
-  return result;
+      if (user) {
+        // (notification as any).label = "Death Verification";
+        (notification as any).user = user;
+        // (notification as any).status = deathVerification.status;
+      }
+    } else if (notification.type === "PARTNER_REQUEST") {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: notification.senderId as string,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          partnerImage: true,
+        },
+      });
+      if (user) {
+        (notification as any).user = user;
+      }
+    } else if (notification.type === "MEMORY_CLAIM_REQUEST") {
+      const claimMemories = await prisma.memoryClaimRequest.findUnique({
+        where: {
+          id: notification.dataId as string,
+        },
+        select: {
+          id: true,
+          status: true,
+          claimantName: true,
+          deceasedProfileId: true,
+        },
+      });
+      if (claimMemories) {
+        const user = await prisma.user.findUnique({
+          where: {
+            userId: claimMemories.deceasedProfileId as string,
+          },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            userImage: true,
+          },
+        });
+        if (user) {
+          (notification as any).user = user;
+        }
+      }
+    } else if (notification.type === "PAYMENT_SUBSCRIPTION") {
+      const payment = await prisma.payment.findUnique({
+        where: {
+          id: notification.dataId as string,
+        },
+        select: {
+          id: true,
+          status: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              userImage: true,
+            },
+          },
+        },
+      });
+      if (payment) {
+        (notification as any).user = payment.user;
+      }
+    }
+  }
+
+  return notification;
 };
 
 export const notificationService = {
