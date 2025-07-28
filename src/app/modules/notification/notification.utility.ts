@@ -6,6 +6,7 @@ interface BulkNotificationInput {
   title: string;
   body: string;
   type: NotificationType;
+  dataId?: string; // Optional, useful for linking to post
   senderId?: string; // Optional, useful for linking to post
   receiverIds?: string[]; // Optional, useful for linking to post
 }
@@ -15,6 +16,7 @@ export const sendBulkNotification = async ({
   title,
   body,
   type,
+  dataId,
   senderId,
   receiverIds,
 }: BulkNotificationInput): Promise<void> => {
@@ -24,6 +26,7 @@ export const sendBulkNotification = async ({
     await Promise.all(
       receiverIds.map((receiverId) => {
         return sendSingleNotification({
+          dataId,
           receiverId,
           title,
           type,

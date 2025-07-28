@@ -849,12 +849,12 @@ const getNotificationIntoDb = async (id: string) => {
   });
 
   return {
-    yourMemories: yourMemories,
     spacialOfferCode,
     spacialOfferCodeYou,
     contactVerification,
     youAreDead,
     othersContactList,
+    yourMemories: yourMemories,
   };
 };
 

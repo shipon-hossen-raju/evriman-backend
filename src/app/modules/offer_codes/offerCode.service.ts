@@ -2,6 +2,7 @@ import { OfferCode } from "@prisma/client";
 import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
+import { sendBulkNotification } from "../notification/notification.utility";
 
 type CreateOfferCodeInput = Omit<
   OfferCode,
@@ -13,7 +14,6 @@ type CreateOfferCodeInput = Omit<
 };
 
 const createOfferCode = async (payload: CreateOfferCodeInput) => {
-
   return await prisma.$transaction(async (tx) => {
     const findOfferCode = await tx.offerCode.findFirst({
       where: {
@@ -25,6 +25,7 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
       throw new ApiError(400, "Offer code already exists");
     }
 
+    let foundUserIds: string[] = [];
     // find & check user
     if (payload.targetUsers?.length) {
       // Check if all target users exist
@@ -35,7 +36,7 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
         select: { id: true, userId: true },
       });
 
-      const foundUserIds = users.map((u) => u.userId);
+      foundUserIds = users.map((u) => u.userId);
       const missingUserIds = payload.targetUsers.filter(
         (id) => !foundUserIds.includes(id)
       );
@@ -75,22 +76,22 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
     if (payload.pricingOptionsLevelId && payload.pricingOptionsLevelId.length) {
       // Check if all pricing options exist
       const pricingOptions = await tx.pricingOption.findMany({
-      where: {
-        id: { in: payload.pricingOptionsLevelId },
-      },
-      select: { id: true },
+        where: {
+          id: { in: payload.pricingOptionsLevelId },
+        },
+        select: { id: true },
       });
 
       const foundPricingOptionIds = pricingOptions.map((p) => p.id);
       const missingPricingOptionIds = payload.pricingOptionsLevelId.filter(
-      (id) => !foundPricingOptionIds.includes(id)
+        (id) => !foundPricingOptionIds.includes(id)
       );
 
       if (missingPricingOptionIds.length > 0) {
-      throw new ApiError(
-        httpStatus.NOT_FOUND,
-        `Pricing option(s) not found: ${missingPricingOptionIds.join(", ")}`
-      );
+        throw new ApiError(
+          httpStatus.NOT_FOUND,
+          `Pricing option(s) not found: ${missingPricingOptionIds.join(", ")}`
+        );
       }
     }
 
@@ -109,17 +110,16 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
             })) || [],
         },
         targetUsers: {
-          create:
-            payload.targetUsers
-              ? (
-                  await tx.user.findMany({
-                    where: { userId: { in: payload.targetUsers } },
-                    select: { id: true, userId: true },
-                  })
-                ).map((user) => ({
-                  userId: user.id,
-                }))
-              : [],
+          create: payload.targetUsers
+            ? (
+                await tx.user.findMany({
+                  where: { userId: { in: payload.targetUsers } },
+                  select: { id: true, userId: true },
+                })
+              ).map((user) => ({
+                userId: user.id,
+              }))
+            : [],
         },
       },
       include: {
@@ -146,6 +146,33 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
         },
       },
     });
+
+    if (foundUserIds.length > 0 || newOfferCode.userType === "SELECTED") {
+      // Check if all no notify users
+      await sendBulkNotification({
+        title: "You’ve received a special gift code!",
+        body: `Share this with your family and friends  when they create an account, they’ll get ${newOfferCode.discountValue}${newOfferCode.discountType === "PERCENTAGE" ? "%" : "$"} off on any plan.`,
+        type: "SPACIAL_OFFER_YOU",
+        receiverIds: foundUserIds,
+        dataId: newOfferCode.id,
+      });
+    }
+
+    if (
+      newOfferCode.userType === "ALL"
+    ) {
+      // Check if all no notify users
+      await sendBulkNotification({
+        title: "You've received gift code!",
+        body: `Share this with your family and friends  when they create an account, they’ll get ${newOfferCode.discountValue}${newOfferCode.discountType === "PERCENTAGE" ? "%" : "$"} off on any plan.`,
+        type: "SPACIAL_OFFER",
+        dataId: newOfferCode.id,
+      });
+    }
+    if (newOfferCode.userType === "NON_PAID") {
+
+    }
+
 
     return newOfferCode;
   });

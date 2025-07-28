@@ -28,7 +28,9 @@ const getMyNotificationFromDb = async (req: Request) => {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  let where: any = {};
+  let where: any = {
+    receiverId: user.id,
+  };
 
   const [result, total] = await Promise.all([
     prisma.notification.findMany({

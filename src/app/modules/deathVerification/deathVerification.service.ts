@@ -6,7 +6,10 @@ import { sendSingleNotification } from "../notification/notification.utility";
 
 // create a new death verification record
 const createIntoDb = async (payload: DeathVerification) => {
-  const result = await prisma.deathVerification.create({ data: payload , select: { id: true, deceasedProfileId: true}});
+  const result = await prisma.deathVerification.create({
+    data: payload,
+    select: { id: true, deceasedProfileId: true },
+  });
 
   if (result.deceasedProfileId) {
     const profileId = result.deceasedProfileId;
@@ -28,13 +31,11 @@ const createIntoDb = async (payload: DeathVerification) => {
     await sendSingleNotification({
       dataId: result.id,
       receiverId: user.id,
-      title: "Death-verification Request.",
+      title: "Death verification Request.",
       type: "DEATH_VERIFICATION",
-      body: "A new death verification has been created",
+      body: "We have received notification of your death. If this is incorrect, please contact us within 72 hours",
     });
   }
-  
-
 
   return result;
 };
@@ -128,7 +129,7 @@ const statusUpdateIntoDb = async (
   if (deathCertificate.status === payload.status) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      `DeathVerification status is already set to ${payload}`
+      `DeathVerification status is already set to ${payload.status}`
     );
   }
 
@@ -140,6 +141,7 @@ const statusUpdateIntoDb = async (
       userId: true,
       isDeceased: true,
       email: true,
+      fullName: true,
     },
   });
   if (!user) {
@@ -189,11 +191,37 @@ const statusUpdateIntoDb = async (
 
       // send notification & mail
       await sendSingleNotification({
+        dataId: id,
         receiverId: user.id,
         title: "Death Verification",
-        type: "DEATH_VERIFICATION",
-        body: "Your Death Certificate is being verified by the Admin",
+        type: "YOU_ARE_DEAD",
+        body: "We have received notification of your death. If this is incorrect, please contact us within 72 hours",
       });
+
+      // Fetch updated contact list entries to notify each contact
+      const updatedContacts = await prisma.contactList.findMany({
+        where: {
+          userId: user.id,
+          isDeathNotify: true,
+        },
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+        },
+      });
+
+      for (const contact of updatedContacts) {
+        await sendSingleNotification({
+          dataId: contact.id,
+          receiverId: contact.userId,
+          title: `${user.fullName} has reported the death of ${contact.name} Can you confirm?`,
+          type: "CONTACT_VERIFICATION",
+          body: "We have received notification of your death. If this is incorrect, please contact us within 72 hours",
+        });
+      }
+
+
     }
 
     const result = await prisma.deathVerification.update({
