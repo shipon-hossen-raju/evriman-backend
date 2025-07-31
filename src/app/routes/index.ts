@@ -13,6 +13,7 @@ import { subscriptionsRoutes } from "../modules/subscriptions/subscriptions.rout
 import tagsRoute from "../modules/tags/tags.rotue";
 import { userRoutes } from "../modules/User/user.route";
 import userMemoryRoute from "../modules/userMemory/userMemory.route";
+import { notificationRoutes } from "../modules/notification/notification.routes";
 
 const router = express.Router();
 
@@ -72,6 +73,10 @@ const moduleRoutes = [
   {
     path: "/admin",
     route: adminRoutes,
+  },
+  {
+    path: "/notification",
+    route: notificationRoutes,
   },
 ];
 

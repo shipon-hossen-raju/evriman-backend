@@ -4,7 +4,6 @@ import { notificationController } from "./notification.controller";
 
 const router = express.Router();
 
-
 router.get("/me", auth(), notificationController.getNotificationList);
 
 // view notification by id

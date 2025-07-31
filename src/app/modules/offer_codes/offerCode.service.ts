@@ -147,13 +147,19 @@ const createOfferCode = async (payload: CreateOfferCodeInput) => {
       },
     });
 
+    const userIds = newOfferCode.targetUsers.map((u) => u.user.id);
     if (foundUserIds.length > 0 || newOfferCode.userType === "SELECTED") {
+
       // Check if all no notify users
       await sendBulkNotification({
         title: "You’ve received a special gift code!",
-        body: `Share this with your family and friends  when they create an account, they’ll get ${newOfferCode.discountValue}${newOfferCode.discountType === "PERCENTAGE" ? "%" : "$"} off on any plan.`,
+        body: `Share this with your family and friends  when they create an account, they’ll get ${
+          newOfferCode.discountValue
+        }${
+          newOfferCode.discountType === "PERCENTAGE" ? "%" : "$"
+        } off on any plan.`,
         type: "SPACIAL_OFFER_YOU",
-        receiverIds: foundUserIds,
+        receiverIds: userIds,
         dataId: newOfferCode.id,
       });
     }
